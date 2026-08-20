@@ -5,10 +5,13 @@ AI Core Monitor is a glassy, scalable Windows 11 desktop widget for local AI wor
 ## Current telemetry
 
 - **Codex:** rolling-window allowance, reset time, plan, and current context tokens from `%USERPROFILE%\.codex\sessions`.
+- **CPU:** live system utilization, logical processor count, nominal clock, and a utilization sparkline through native Windows counters.
 - **NVIDIA GPU:** utilization, VRAM, temperature, power, and a live utilization sparkline through local `nvidia-smi`.
-- **Ollama:** service state, installed and loaded model counts, model storage, and the active model through `http://127.0.0.1:11434`.
+- **Local model engine:** one shared model surface for Ogagi and Ollama. An authenticated active Ogagi session wins; otherwise an active Ollama model wins, followed by an online idle Ogagi controller and then an online idle Ollama service.
 
-Providers are isolated and independently timed out. An unavailable GPU or Ollama service does not prevent Codex telemetry from updating.
+Ogagi telemetry uses its user-scoped daemon credential only for bounded, read-only requests to the deterministic loopback controller port. Model names and aggregate storage come from a read-only query of Ogagi's local catalog. Ollama telemetry continues to use `http://127.0.0.1:11434`.
+
+Providers are isolated and independently timed out. An unavailable CPU counter, GPU, Ogagi controller, or Ollama service does not prevent other telemetry from updating.
 
 ## Run
 
@@ -81,4 +84,4 @@ src
 
 ## Privacy
 
-The application does not read `auth.json`, browser cookies, or account credentials. Ollama access is restricted to localhost. It sends no telemetry externally. OpenAI API organization usage and costs will be added as an explicit opt-in provider using Windows Credential Manager; ChatGPT consumer-account scraping will not be used.
+The application does not read `auth.json`, browser cookies, or cloud account credentials. It reads the user-scoped Ogagi daemon token only to authenticate read-only requests to the derived loopback controller port; the token is never displayed, logged, persisted by Panel, or sent off-device. Ollama access is also restricted to localhost. Panel sends no telemetry externally. OpenAI API organization usage and costs will be added as an explicit opt-in provider using Windows Credential Manager; ChatGPT consumer-account scraping will not be used.

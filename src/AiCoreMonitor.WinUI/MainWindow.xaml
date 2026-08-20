@@ -123,28 +123,50 @@
             </Grid>
           </Border>
 
-          <Border x:Name="GpuCard" Grid.Row="1" Background="{StaticResource CardGradient}" BorderBrush="#405A7498" BorderThickness="1" CornerRadius="16" Padding="17,13">
-            <Grid>
-              <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-              <Grid x:Name="GpuSparklineHost" Grid.RowSpan="3" Height="48" VerticalAlignment="Bottom" Margin="0,0,0,7" IsHitTestVisible="False" />
+          <Border x:Name="ComputeCard" Grid.Row="1" Background="{StaticResource CardGradient}" BorderBrush="#405A7498" BorderThickness="1" CornerRadius="16" Padding="17,10">
+            <Grid RowSpacing="4">
+              <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="1" /><RowDefinition Height="*" /></Grid.RowDefinitions>
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <TextBlock Text="GPU COMPUTE" Style="{StaticResource EyebrowStyle}" />
-                <TextBlock Grid.Column="1" Text="{Binding GpuName}" Foreground="#66809E" FontSize="9" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="SYSTEM COMPUTE" Style="{StaticResource EyebrowStyle}" />
+                <TextBlock Grid.Column="1" Text="CPU / GPU" Foreground="#66809E" FontSize="9" TextAlignment="Right" />
               </Grid>
-              <Grid Grid.Row="1" Margin="0,3,0,2">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <StackPanel VerticalAlignment="Center">
-                  <TextBlock x:Name="GpuValue" Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="31" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock x:Name="GpuCaption" Text="GPU LOAD" Foreground="#647E9D" FontSize="8" Margin="2,0,0,0" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding GpuMemory}" Foreground="#CFDEED" FontSize="13" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="VRAM IN USE" Foreground="#647E9D" FontSize="8" TextAlignment="Right" />
-                  <TextBlock Text="{Binding GpuThermals}" Foreground="#8097B3" FontSize="10" Margin="0,5,0,0" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
-                </StackPanel>
+
+              <Grid Grid.Row="1">
+                <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="3" /></Grid.RowDefinitions>
+                <Grid x:Name="CpuSparklineHost" Grid.RowSpan="2" Height="30" VerticalAlignment="Bottom" Margin="0,0,0,4" IsHitTestVisible="False" />
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="68" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="CPU" Foreground="#647E9D" FontSize="8" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock x:Name="CpuValue" Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="24" FontWeight="SemiBold" Margin="7,0,0,0" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CpuName}" ToolTipService.ToolTip="{Binding CpuName}" Foreground="#9CB1C9" FontSize="8" TextAlignment="Right" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding CpuDetails}" Foreground="#CFDEED" FontSize="9" TextAlignment="Right" Margin="0,1,0,0" />
+                  </StackPanel>
+                </Grid>
+                <ProgressBar Grid.Row="1" Height="3" Minimum="0" Maximum="100" Value="{Binding CpuUsagePercent}" Foreground="{StaticResource AccentGradient}" />
               </Grid>
-              <ProgressBar Grid.Row="2" Height="5" Minimum="0" Maximum="100" Value="{Binding GpuUsagePercent}" Foreground="{StaticResource AccentGradient}" />
+
+              <Border Grid.Row="2" Background="#33445D79" />
+
+              <Grid Grid.Row="3">
+                <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="3" /></Grid.RowDefinitions>
+                <Grid x:Name="GpuSparklineHost" Grid.RowSpan="2" Height="30" VerticalAlignment="Bottom" Margin="0,0,0,4" IsHitTestVisible="False" />
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="68" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="GPU" Foreground="#647E9D" FontSize="8" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock x:Name="GpuValue" Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="24" FontWeight="SemiBold" Margin="7,0,0,0" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding GpuName}" ToolTipService.ToolTip="{Binding GpuName}" Foreground="#9CB1C9" FontSize="8" TextAlignment="Right" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding GpuDetails}" Foreground="#CFDEED" FontSize="9" TextAlignment="Right" Margin="0,1,0,0" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Grid>
+                <ProgressBar Grid.Row="1" Height="3" Minimum="0" Maximum="100" Value="{Binding GpuUsagePercent}" Foreground="{StaticResource AccentGradient}" />
+              </Grid>
             </Grid>
           </Border>
 
@@ -153,8 +175,8 @@
               <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <TextBlock Text="LOCAL MODEL VAULT" Style="{StaticResource EyebrowStyle}" />
-                <TextBlock Grid.Column="1" Text="{Binding OllamaState}" Foreground="#49DFB5" FontSize="9" FontWeight="SemiBold" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="LOCAL MODEL ENGINE" Style="{StaticResource EyebrowStyle}" />
+                <TextBlock Grid.Column="1" Text="{Binding LocalEngineState}" Foreground="#49DFB5" FontSize="9" FontWeight="SemiBold" TextAlignment="Right" TextWrapping="Wrap" />
               </Grid>
               <Grid Grid.Row="1" Margin="0,3,0,2">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="70" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -163,11 +185,11 @@
                   <TextBlock x:Name="ModelCaption" Text="{Binding ModelCountLabel}" Foreground="#647E9D" FontSize="8" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding ActiveModelShort}" ToolTipService.ToolTip="{Binding ActiveModel}" Foreground="#D0E0F0" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextAlignment="Right" />
-                  <TextBlock Text="{Binding ModelStorage}" Foreground="#647E9D" FontSize="9" Margin="0,5,0,0" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding ActiveModel}" ToolTipService.ToolTip="{Binding ActiveModel}" Foreground="#D0E0F0" FontSize="10" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Right" />
+                  <TextBlock Text="{Binding ModelStorage}" Foreground="#647E9D" FontSize="9" Margin="0,4,0,0" TextAlignment="Right" TextWrapping="Wrap" />
                 </StackPanel>
               </Grid>
-              <Grid Grid.Row="2"><Border Height="1" Background="#33445D79" /><Border Background="#121A2A" Padding="6,0" HorizontalAlignment="Right"><TextBlock Text="LOCALHOST / PRIVATE" Foreground="#4D6987" FontSize="8" /></Border></Grid>
+              <Grid Grid.Row="2"><Border Height="1" Background="#33445D79" /><Border Background="#121A2A" Padding="6,0" HorizontalAlignment="Right"><TextBlock Text="{Binding EnginePrivacyLabel}" Foreground="#4D6987" FontSize="8" /></Border></Grid>
             </Grid>
           </Border>
 
@@ -190,10 +212,10 @@
             <Setter Target="Dashboard.Margin" Value="10,0,10,9" />
             <Setter Target="Dashboard.RowSpacing" Value="6" />
             <Setter Target="CodexValue.FontSize" Value="28" />
-            <Setter Target="GpuValue.FontSize" Value="26" />
+            <Setter Target="CpuValue.FontSize" Value="21" />
+            <Setter Target="GpuValue.FontSize" Value="21" />
             <Setter Target="ModelValue.FontSize" Value="24" />
             <Setter Target="CodexCaption.Visibility" Value="Collapsed" />
-            <Setter Target="GpuCaption.Visibility" Value="Collapsed" />
             <Setter Target="ModelCaption.Visibility" Value="Collapsed" />
             <Setter Target="HeaderSubtitle.Visibility" Value="Collapsed" />
           </VisualState.Setters>
@@ -204,10 +226,10 @@
             <Setter Target="Dashboard.Margin" Value="16,2,16,14" />
             <Setter Target="Dashboard.RowSpacing" Value="10" />
             <Setter Target="CodexValue.FontSize" Value="34" />
-            <Setter Target="GpuValue.FontSize" Value="31" />
+            <Setter Target="CpuValue.FontSize" Value="24" />
+            <Setter Target="GpuValue.FontSize" Value="24" />
             <Setter Target="ModelValue.FontSize" Value="29" />
             <Setter Target="CodexCaption.Visibility" Value="Visible" />
-            <Setter Target="GpuCaption.Visibility" Value="Visible" />
             <Setter Target="ModelCaption.Visibility" Value="Visible" />
             <Setter Target="HeaderSubtitle.Visibility" Value="Visible" />
           </VisualState.Setters>
@@ -218,7 +240,7 @@
           <VisualState.StateTriggers><AdaptiveTrigger MinWindowHeight="0" /></VisualState.StateTriggers>
           <VisualState.Setters>
             <Setter Target="CodexCard.Padding" Value="12,8" />
-            <Setter Target="GpuCard.Padding" Value="12,8" />
+            <Setter Target="ComputeCard.Padding" Value="12,7" />
             <Setter Target="ModelCard.Padding" Value="12,7" />
           </VisualState.Setters>
         </VisualState>
@@ -226,7 +248,7 @@
           <VisualState.StateTriggers><AdaptiveTrigger MinWindowHeight="510" /></VisualState.StateTriggers>
           <VisualState.Setters>
             <Setter Target="CodexCard.Padding" Value="17,13" />
-            <Setter Target="GpuCard.Padding" Value="17,13" />
+            <Setter Target="ComputeCard.Padding" Value="17,10" />
             <Setter Target="ModelCard.Padding" Value="17,12" />
           </VisualState.Setters>
         </VisualState>

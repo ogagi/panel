@@ -18,6 +18,7 @@ public sealed partial class MainWindow : Window
     private readonly CancellationTokenSource _lifetime = new();
     private readonly DispatcherTimer _refreshTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly LavaCompositionController _lava;
+    private readonly SparklineCompositionController _cpuSparkline;
     private readonly SparklineCompositionController _sparkline;
     private readonly GlassBackdropController _glass;
     private LavaOverlayWindow? _overlay;
@@ -53,6 +54,7 @@ public sealed partial class MainWindow : Window
             LavaAmount = (float)_settings.LavaAmount.Value,
             CrackAmount = (float)_settings.CrackAmount.Value
         };
+        _cpuSparkline = new SparklineCompositionController(CpuSparklineHost);
         _sparkline = new SparklineCompositionController(GpuSparklineHost);
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         UpdateEffectControls();
@@ -185,7 +187,9 @@ public sealed partial class MainWindow : Window
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
-        if (args.PropertyName == nameof(MainViewModel.GpuSamples))
+        if (args.PropertyName == nameof(MainViewModel.CpuSamples))
+            _cpuSparkline.SetValues(_viewModel.CpuSamples);
+        else if (args.PropertyName == nameof(MainViewModel.GpuSamples))
             _sparkline.SetValues(_viewModel.GpuSamples);
     }
 
@@ -284,6 +288,7 @@ public sealed partial class MainWindow : Window
         _overlay?.Dispose();
         _glass.Dispose();
         _lava.Dispose();
+        _cpuSparkline.Dispose();
         _sparkline.Dispose();
         _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
         _viewModel.Dispose();

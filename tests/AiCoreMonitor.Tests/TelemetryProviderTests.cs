@@ -50,6 +50,57 @@ public sealed class TelemetryProviderTests
     }
 
     [TestMethod]
+    public void CpuUtilization_UsesIdleShareOfKernelAndUserDeltas()
+    {
+        var utilization = CpuTelemetryProvider.CalculateUtilization(
+            previousIdle: 100, previousKernel: 200, previousUser: 200,
+            idle: 150, kernel: 300, user: 300);
+
+        Assert.AreEqual(75, utilization);
+    }
+
+    [TestMethod]
+    public void OgagiPortDiscovery_MatchesDevelopmentControllerNamespace()
+    {
+        var path = @"C:\Users\uri_k\AppData\Roaming\Ogagi";
+
+        Assert.AreEqual(26_506, OgagiTelemetryProvider.DeterministicProfilePort(path, "packaged"));
+        Assert.AreEqual(45_019, OgagiTelemetryProvider.DeterministicProfilePort(path, "development"));
+        Assert.AreEqual(12_736, OgagiTelemetryProvider.DeterministicProfilePort(path, "development-wsl"));
+    }
+
+    [TestMethod]
+    public void LocalEngineSelection_PrefersActiveOgagiSession()
+    {
+        var observedAt = DateTimeOffset.Now;
+        var ollama = new AiCoreMonitor.Core.OllamaSnapshot(observedAt, 2, 1, 2_000,
+            "ollama-active", []);
+        var ogagi = new AiCoreMonitor.Core.OgagiSnapshot(observedAt, "ready",
+            "ogagi-active", "cuda-full-device", []);
+
+        var selected = LocalEngineTelemetryProvider.Select(ollama, ogagi);
+
+        Assert.IsNotNull(selected);
+        Assert.AreEqual("ogagi", selected.EngineId);
+        Assert.AreEqual("ogagi-active", selected.ActiveModel);
+    }
+
+    [TestMethod]
+    public void LocalEngineSelection_UsesActiveOllamaWhenOgagiHasNoModel()
+    {
+        var observedAt = DateTimeOffset.Now;
+        var ollama = new AiCoreMonitor.Core.OllamaSnapshot(observedAt, 2, 1, 2_000,
+            "ollama-active", []);
+        var ogagi = new AiCoreMonitor.Core.OgagiSnapshot(observedAt, "online", null, null, []);
+
+        var selected = LocalEngineTelemetryProvider.Select(ollama, ogagi);
+
+        Assert.IsNotNull(selected);
+        Assert.AreEqual("ollama", selected.EngineId);
+        Assert.AreEqual("ollama-active", selected.ActiveModel);
+    }
+
+    [TestMethod]
     [DataRow(999L, "999")]
     [DataRow(1_250L, "1.3K")]
     [DataRow(2_500_000L, "2.5M")]

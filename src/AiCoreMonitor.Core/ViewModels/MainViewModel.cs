@@ -8,11 +8,14 @@ namespace AiCoreMonitor.ViewModels;
 
 public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyChanged, IDisposable
 {
+    private readonly Queue<double> _cpuHistory = new();
     private readonly Queue<double> _gpuHistory = new();
     private ProviderResult<CodexSnapshot>? _codex;
+    private ProviderResult<CpuSnapshot>? _cpu;
     private ProviderResult<GpuSnapshot>? _gpu;
-    private ProviderResult<OllamaSnapshot>? _ollama;
+    private ProviderResult<LocalEngineSnapshot>? _localEngine;
     private bool _isRefreshing;
+    private double[] _cpuSamples = [];
     private double[] _gpuSamples = [];
     private string _lastRefreshText = "INITIALIZING";
 
@@ -24,28 +27,49 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     public string CodexReset => _codex?.Value?.ResetsAt is { } reset ? $"RESET {reset:ddd HH:mm}" : "NO RESET DATA";
     public string CodexTokens => _codex?.Value is { } value ? $"{Compact(value.TotalTokens)} CONTEXT TOKENS" : "NO TOKEN DATA";
 
+    public string CpuName => _cpu?.Value?.Name.ToUpperInvariant() ?? "CPU UNAVAILABLE";
+    public string CpuUsage => _cpu?.Value is { } value ? $"{value.UtilizationPercent:N0}%" : "--%";
+    public double CpuUsagePercent => Math.Clamp(_cpu?.Value?.UtilizationPercent ?? 0, 0, 100);
+    public string CpuDetails => _cpu?.Value is { } value
+        ? value.NominalClockGhz > 0
+            ? $"{value.LogicalProcessorCount} LOGICAL   /   {value.NominalClockGhz:N1} GHZ"
+            : $"{value.LogicalProcessorCount} LOGICAL PROCESSORS"
+        : "-- LOGICAL PROCESSORS";
+    public double[] CpuSamples { get => _cpuSamples; private set => Set(ref _cpuSamples, value); }
+
     public string GpuName => _gpu?.Value?.Name.ToUpperInvariant() ?? "NVIDIA GPU UNAVAILABLE";
     public string GpuUsage => _gpu?.Value is { } value ? $"{value.UtilizationPercent:N0}%" : "--%";
     public double GpuUsagePercent => Math.Clamp(_gpu?.Value?.UtilizationPercent ?? 0, 0, 100);
     public string GpuMemory => _gpu?.Value is { } value ? $"{value.MemoryUsedMiB / 1024:N1} / {value.MemoryTotalMiB / 1024:N1} GB" : "-- / -- GB";
     public string GpuThermals => _gpu?.Value is { } value ? $"{value.TemperatureC:N0} C   /   {value.PowerWatts:N0} W" : "-- C   /   -- W";
+    public string GpuDetails => $"{GpuMemory}   /   {GpuThermals}";
     public double[] GpuSamples { get => _gpuSamples; private set => Set(ref _gpuSamples, value); }
 
-    public string ModelCount => _ollama?.Value is { } value ? value.InstalledCount.ToString(CultureInfo.InvariantCulture) : "--";
-    public string ModelCountLabel => _ollama?.Value is { InstalledCount: 1 } ? "MODEL INSTALLED" : "MODELS INSTALLED";
-    public string OllamaState => _ollama?.Value is { LoadedCount: > 0 } ? "INFERENCE ACTIVE" : _ollama?.IsAvailable == true ? "OLLAMA ONLINE" : "OLLAMA OFFLINE";
-    public string ActiveModel => _ollama?.Value?.ActiveModel ?? "No model currently loaded";
+    public string ModelCount => _localEngine?.Value is { } value ? value.InstalledCount.ToString(CultureInfo.InvariantCulture) : "--";
+    public string ModelCountLabel => _localEngine?.Value is { InstalledCount: 1 } ? "MODEL INSTALLED" : "MODELS INSTALLED";
+    public string LocalEngineState => _localEngine?.Value is { LoadedCount: > 0 } value
+        ? $"{value.EngineName.ToUpperInvariant()} ACTIVE"
+        : _localEngine?.Value is { } online ? $"{online.EngineName.ToUpperInvariant()} ONLINE" : "LOCAL ENGINES OFFLINE";
+    public string ActiveEngine => _localEngine?.Value?.EngineName.ToUpperInvariant() ?? "LOCAL ENGINE";
+    public string ActiveModel => _localEngine?.Value?.ActiveModel ?? "No model currently loaded";
     public string ActiveModelShort => ShortModelName(ActiveModel);
-    public string ModelStorage => _ollama?.Value is { } value ? $"{value.TotalBytes / 1_073_741_824d:N1} GB ON DISK   /   {value.LoadedCount} LOADED" : "NO LOCAL DATA";
+    public string ModelStorage => _localEngine?.Value is { } value
+        ? value.Backend is { Length: > 0 } backend
+            ? $"{value.TotalBytes / 1_073_741_824d:N1} GB   /   {FormatBackend(backend)}"
+            : $"{value.TotalBytes / 1_073_741_824d:N1} GB ON DISK   /   {value.LoadedCount} LOADED"
+        : "NO LOCAL DATA";
+    public string EnginePrivacyLabel => $"LOCALHOST / {ActiveEngine}";
 
-    public int AvailableProviders => (_codex?.IsAvailable == true ? 1 : 0) + (_gpu?.IsAvailable == true ? 1 : 0) + (_ollama?.IsAvailable == true ? 1 : 0);
-    public string SystemState => AvailableProviders switch { 3 => "ALL SYSTEMS NOMINAL", > 0 => $"{AvailableProviders}/3 PROVIDERS ONLINE", _ => "PROVIDERS OFFLINE" };
-    public string StatusColor => AvailableProviders switch { 3 => "#35F2B4", > 0 => "#FFC857", _ => "#FF5A7A" };
+    public int AvailableProviders => (_codex?.IsAvailable == true ? 1 : 0) + (_cpu?.IsAvailable == true ? 1 : 0) +
+        (_gpu?.IsAvailable == true ? 1 : 0) + (_localEngine?.IsAvailable == true ? 1 : 0);
+    public string SystemState => AvailableProviders switch { 4 => "ALL SYSTEMS NOMINAL", > 0 => $"{AvailableProviders}/4 PROVIDERS ONLINE", _ => "PROVIDERS OFFLINE" };
+    public string StatusColor => AvailableProviders switch { 4 => "#35F2B4", > 0 => "#FFC857", _ => "#FF5A7A" };
     public string ErrorSummary
     {
         get
         {
-            var errors = new[] { Prefix("Codex", _codex?.Error), Prefix("GPU", _gpu?.Error), Prefix("Ollama", _ollama?.Error) }.Where(value => value is not null);
+            var errors = new[] { Prefix("Codex", _codex?.Error), Prefix("CPU", _cpu?.Error), Prefix("GPU", _gpu?.Error),
+                Prefix("Local engine", _localEngine?.Error) }.Where(value => value is not null);
             return string.Join("  /  ", errors!);
         }
     }
@@ -58,15 +82,24 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
         try
         {
             var gpuTask = telemetry.CollectGpuAsync(cancellationToken);
+            var cpuTask = telemetry.CollectCpuAsync(cancellationToken);
             if (includeSlowProviders)
             {
                 var codexTask = telemetry.CollectCodexAsync(cancellationToken);
-                var ollamaTask = telemetry.CollectOllamaAsync(cancellationToken);
-                await Task.WhenAll(gpuTask, codexTask, ollamaTask);
+                var localEngineTask = telemetry.CollectLocalEngineAsync(cancellationToken);
+                await Task.WhenAll(gpuTask, cpuTask, codexTask, localEngineTask);
                 _codex = await codexTask;
-                _ollama = await ollamaTask;
+                _localEngine = await localEngineTask;
             }
+            await Task.WhenAll(gpuTask, cpuTask);
             _gpu = await gpuTask;
+            _cpu = await cpuTask;
+            if (_cpu.Value is { } cpu)
+            {
+                _cpuHistory.Enqueue(cpu.UtilizationPercent);
+                while (_cpuHistory.Count > 48) _cpuHistory.Dequeue();
+                CpuSamples = _cpuHistory.ToArray();
+            }
             if (_gpu.Value is { } gpu)
             {
                 _gpuHistory.Enqueue(gpu.UtilizationPercent);
@@ -85,8 +118,10 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     private void RaiseAll()
     {
         foreach (var property in new[] { nameof(CodexRemaining), nameof(CodexUsedPercent), nameof(CodexPlan), nameof(CodexReset), nameof(CodexTokens),
-                     nameof(GpuName), nameof(GpuUsage), nameof(GpuUsagePercent), nameof(GpuMemory), nameof(GpuThermals),
-                     nameof(ModelCount), nameof(ModelCountLabel), nameof(OllamaState), nameof(ActiveModel), nameof(ActiveModelShort), nameof(ModelStorage),
+                     nameof(CpuName), nameof(CpuUsage), nameof(CpuUsagePercent), nameof(CpuDetails),
+                     nameof(GpuName), nameof(GpuUsage), nameof(GpuUsagePercent), nameof(GpuMemory), nameof(GpuThermals), nameof(GpuDetails),
+                     nameof(ModelCount), nameof(ModelCountLabel), nameof(LocalEngineState), nameof(ActiveEngine), nameof(ActiveModel),
+                     nameof(ActiveModelShort), nameof(ModelStorage), nameof(EnginePrivacyLabel),
                      nameof(AvailableProviders), nameof(SystemState), nameof(StatusColor), nameof(ErrorSummary) })
             OnPropertyChanged(property);
     }
@@ -113,6 +148,14 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
             name = name[..^":latest".Length];
         return name.Length <= 24 ? name : $"{name[..21].TrimEnd('-', '_', '.')}...";
     }
+
+    private static string FormatBackend(string value) => value switch
+    {
+        "cuda-full-device" or "nvidia-cuda" => "NVIDIA CUDA",
+        "hybrid-cpu-cuda" => "CPU + CUDA",
+        "cpu" => "CPU",
+        _ => value.Replace('-', ' ').ToUpperInvariant()
+    };
 
     private static double Rounded(double value) => Math.Round(value, 1, MidpointRounding.AwayFromZero);
 
