@@ -108,8 +108,11 @@ internal sealed class LavaOverlayWindow : IDisposable
             _height = Math.Max(1, height);
             _panelHeight = Math.Clamp(panelHeight, 1, _height);
             if (_window != 0)
+            {
+                var flags = SwpNoActivate | (_enabled ? SwpShowWindow : 0);
                 _ = SetWindowPos(_window, topmost ? HwndTopmost : HwndNotTopmost,
-                    _x, _y, _width, _height, SwpNoActivate | SwpShowWindow);
+                    _x, _y, _width, _height, flags);
+            }
         }
     }
 
