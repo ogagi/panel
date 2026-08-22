@@ -16,7 +16,7 @@
         <GradientStop Color="#40211937" Offset="1" />
       </LinearGradientBrush>
       <Style x:Key="EyebrowStyle" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="#8299B8" />
+        <Setter Property="Foreground" Value="#AEC6E2" />
         <Setter Property="FontSize" Value="10" />
         <Setter Property="FontWeight" Value="SemiBold" />
       </Style>
@@ -30,18 +30,24 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="CornerRadius" Value="8" />
       </Style>
+      <Style x:Key="ThemeIconButtonStyle" TargetType="Button" BasedOn="{StaticResource HeaderButtonStyle}">
+        <Setter Property="Width" Value="25" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Margin" Value="1,0" />
+        <Setter Property="CornerRadius" Value="7" />
+      </Style>
     </Grid.Resources>
 
-    <Grid x:Name="LavaHost" IsHitTestVisible="False" />
-
-    <Border Margin="1" CornerRadius="20" Background="#24101828" BorderBrush="#A27E9AC0" BorderThickness="1">
+    <Border x:Name="PanelFrame" Margin="1" CornerRadius="20" Background="#FF03060B" BorderBrush="#96596C84" BorderThickness="1">
       <Grid>
         <Grid.RowDefinitions>
           <RowDefinition Height="54" />
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Grid.RowSpan="2" CornerRadius="19" IsHitTestVisible="False">
+        <Grid x:Name="LavaHost" Grid.RowSpan="2" IsHitTestVisible="False" />
+
+        <Border x:Name="ThemeSheen" Grid.RowSpan="2" CornerRadius="19" IsHitTestVisible="False">
           <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
               <GradientStop Color="#1FDDF6FF" Offset="0" />
@@ -62,28 +68,22 @@
             </Grid>
             <StackPanel VerticalAlignment="Center">
               <TextBlock Text="AI / CORE" Foreground="#E3F0FF" FontSize="12" FontWeight="Bold" />
-              <TextBlock x:Name="HeaderSubtitle" Text="WORKSTATION INTELLIGENCE" Foreground="#597391" FontSize="8" />
+              <TextBlock x:Name="HeaderSubtitle" Text="WORKSTATION INTELLIGENCE" Foreground="#8EAACA" FontSize="8" />
             </StackPanel>
           </StackPanel>
 
           <StackPanel x:Name="HeaderActions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-            <Button x:Name="AnimationButton" Style="{StaticResource HeaderButtonStyle}" Content="FX" FontSize="9">
-              <Button.Flyout>
-                <Flyout Placement="BottomEdgeAlignedRight" Opened="EffectsFlyout_Opened">
-                  <Border Width="176" Padding="9,6" CornerRadius="9" Background="#F21A1428">
-                    <Grid RowSpacing="3" ColumnSpacing="6">
-                      <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                      <Grid.ColumnDefinitions><ColumnDefinition Width="38" /><ColumnDefinition Width="*" /><ColumnDefinition Width="40" /></Grid.ColumnDefinitions>
-                      <TextBlock Text="LAVA" Foreground="#B4C7DD" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" />
-                      <Slider x:Name="LavaAmountSlider" Grid.Column="1" Minimum="10" Maximum="100" />
-                      <ToggleSwitch x:Name="LavaToggle" Grid.Column="2" Width="40" MinWidth="40" OnContent="" OffContent="" />
-                      <TextBlock Grid.Row="1" Text="CRACK" Foreground="#B4C7DD" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" />
-                      <Slider x:Name="CrackAmountSlider" Grid.Row="1" Grid.Column="1" Minimum="10" Maximum="100" />
-                      <ToggleSwitch x:Name="CracksToggle" Grid.Row="1" Grid.Column="2" Width="40" MinWidth="40" OnContent="" OffContent="" />
-                    </Grid>
-                  </Border>
-                </Flyout>
-              </Button.Flyout>
+            <Button x:Name="RegularModeButton" Style="{StaticResource ThemeIconButtonStyle}" Click="RegularModeButton_Click"
+                    ToolTipService.ToolTip="Regular theme" AutomationProperties.Name="Regular theme">
+              <FontIcon FontFamily="Segoe UI Symbol" Glyph="&#x25CB;" FontSize="12" />
+            </Button>
+            <Button x:Name="FreezeModeButton" Style="{StaticResource ThemeIconButtonStyle}" Click="FreezeModeButton_Click"
+                    ToolTipService.ToolTip="Freeze theme" AutomationProperties.Name="Freeze theme">
+              <FontIcon FontFamily="Segoe UI Symbol" Glyph="&#x2744;" FontSize="11" />
+            </Button>
+            <Button x:Name="LavaModeButton" Style="{StaticResource ThemeIconButtonStyle}" Click="LavaModeButton_Click"
+                    ToolTipService.ToolTip="Lava theme" AutomationProperties.Name="Lava theme">
+              <FontIcon FontFamily="Segoe UI Symbol" Glyph="&#x2668;" FontSize="12" />
             </Button>
             <Button Style="{StaticResource HeaderButtonStyle}" Content="—" FontSize="12" Click="MinimizeButton_Click" />
             <Button Style="{StaticResource HeaderButtonStyle}" Content="×" FontSize="16" Click="CloseButton_Click" />
@@ -105,18 +105,18 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <TextBlock Text="CODEX ALLOCATION" Style="{StaticResource EyebrowStyle}" />
                 <Border Grid.Column="1" HorizontalAlignment="Right" CornerRadius="8" Background="#29365975" Padding="8,3" MaxWidth="145">
-                  <TextBlock Text="{Binding CodexPlan}" Foreground="#9AAFC9" FontSize="9" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding CodexPlan}" Foreground="#C0D2E6" FontSize="9" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                 </Border>
               </Grid>
               <Grid Grid.Row="1" Margin="0,3,0,2">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="96" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock x:Name="CodexValue" Text="{Binding CodexRemaining}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="34" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock x:Name="CodexCaption" Text="ALLOCATION REMAINING" Foreground="#647E9D" FontSize="8" Margin="2,0,0,0" TextTrimming="CharacterEllipsis" />
+                  <TextBlock x:Name="CodexCaption" Text="ALLOCATION REMAINING" Foreground="#91ACCB" FontSize="8" Margin="2,0,0,0" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                   <TextBlock Text="{Binding CodexReset}" Foreground="#B8CBE0" FontSize="10" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="{Binding CodexTokens}" Foreground="#66809E" FontSize="9" Margin="0,6,0,0" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding CodexTokens}" Foreground="#91ACCB" FontSize="9" Margin="0,6,0,0" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
               </Grid>
               <ProgressBar Grid.Row="2" Height="5" Minimum="0" Maximum="100" Value="{Binding CodexUsedPercent}" Foreground="{StaticResource AccentGradient}" />
@@ -124,48 +124,38 @@
           </Border>
 
           <Border x:Name="ComputeCard" Grid.Row="1" Background="{StaticResource CardGradient}" BorderBrush="#405A7498" BorderThickness="1" CornerRadius="16" Padding="17,10">
-            <Grid RowSpacing="4">
-              <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="1" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-              <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <TextBlock Text="SYSTEM COMPUTE" Style="{StaticResource EyebrowStyle}" />
-                <TextBlock Grid.Column="1" Text="CPU / GPU" Foreground="#66809E" FontSize="9" TextAlignment="Right" />
-              </Grid>
+            <Grid RowSpacing="6">
+              <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+              <TextBlock Text="SYSTEM COMPUTE" Style="{StaticResource EyebrowStyle}" />
 
-              <Grid Grid.Row="1">
-                <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="3" /></Grid.RowDefinitions>
-                <Grid x:Name="CpuSparklineHost" Grid.RowSpan="2" Height="30" VerticalAlignment="Bottom" Margin="0,0,0,4" IsHitTestVisible="False" />
-                <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="68" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="CPU" Foreground="#647E9D" FontSize="8" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <TextBlock x:Name="CpuValue" Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="24" FontWeight="SemiBold" Margin="7,0,0,0" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding CpuName}" ToolTipService.ToolTip="{Binding CpuName}" Foreground="#9CB1C9" FontSize="8" TextAlignment="Right" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding CpuDetails}" Foreground="#CFDEED" FontSize="9" TextAlignment="Right" Margin="0,1,0,0" />
-                  </StackPanel>
+              <Grid Grid.Row="1" ColumnSpacing="10">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+
+                <Grid ToolTipService.ToolTip="{Binding CpuName}">
+                  <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="3" /></Grid.RowDefinitions>
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="CPU" Foreground="#AEC6E2" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock x:Name="CpuValue" Grid.Column="1" Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                  </Grid>
+                  <TextBlock Grid.Row="1" Text="{Binding CpuDetails}" Foreground="#BDD0E4" FontSize="8" Margin="0,1,0,0" TextTrimming="CharacterEllipsis" />
+                  <Grid x:Name="CpuSparklineHost" Grid.Row="2" MinHeight="24" Margin="0,2,0,3" IsHitTestVisible="False" />
+                  <ProgressBar Grid.Row="3" Height="3" Minimum="0" Maximum="100" Value="{Binding CpuUsagePercent}" Foreground="{StaticResource AccentGradient}" />
                 </Grid>
-                <ProgressBar Grid.Row="1" Height="3" Minimum="0" Maximum="100" Value="{Binding CpuUsagePercent}" Foreground="{StaticResource AccentGradient}" />
-              </Grid>
 
-              <Border Grid.Row="2" Background="#33445D79" />
+                <Border Grid.Column="1" Background="#33445D79" Margin="0,2" />
 
-              <Grid Grid.Row="3">
-                <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="3" /></Grid.RowDefinitions>
-                <Grid x:Name="GpuSparklineHost" Grid.RowSpan="2" Height="30" VerticalAlignment="Bottom" Margin="0,0,0,4" IsHitTestVisible="False" />
-                <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition Width="68" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="GPU" Foreground="#647E9D" FontSize="8" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <TextBlock x:Name="GpuValue" Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="24" FontWeight="SemiBold" Margin="7,0,0,0" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding GpuName}" ToolTipService.ToolTip="{Binding GpuName}" Foreground="#9CB1C9" FontSize="8" TextAlignment="Right" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding GpuDetails}" Foreground="#CFDEED" FontSize="9" TextAlignment="Right" Margin="0,1,0,0" TextWrapping="Wrap" />
-                  </StackPanel>
+                <Grid Grid.Column="2" ToolTipService.ToolTip="{Binding GpuVramTooltip}">
+                  <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="3" /></Grid.RowDefinitions>
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="GPU" Foreground="#AEC6E2" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock x:Name="GpuValue" Grid.Column="1" Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                  </Grid>
+                  <TextBlock Grid.Row="1" Text="{Binding GpuMemory}" Foreground="#BDD0E4" FontSize="8" Margin="0,1,0,0" TextTrimming="CharacterEllipsis" />
+                  <Grid x:Name="GpuSparklineHost" Grid.Row="2" MinHeight="24" Margin="0,2,0,3" IsHitTestVisible="False" />
+                  <ProgressBar Grid.Row="3" Height="3" Minimum="0" Maximum="100" Value="{Binding GpuUsagePercent}" Foreground="{StaticResource AccentGradient}" />
                 </Grid>
-                <ProgressBar Grid.Row="1" Height="3" Minimum="0" Maximum="100" Value="{Binding GpuUsagePercent}" Foreground="{StaticResource AccentGradient}" />
               </Grid>
             </Grid>
           </Border>
@@ -182,23 +172,23 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="70" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock x:Name="ModelValue" Text="{Binding ModelCount}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="29" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock x:Name="ModelCaption" Text="{Binding ModelCountLabel}" Foreground="#647E9D" FontSize="8" />
+                  <TextBlock x:Name="ModelCaption" Text="{Binding ModelCountLabel}" Foreground="#91ACCB" FontSize="8" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                   <TextBlock Text="{Binding ActiveModel}" ToolTipService.ToolTip="{Binding ActiveModel}" Foreground="#D0E0F0" FontSize="10" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Right" />
-                  <TextBlock Text="{Binding ModelStorage}" Foreground="#647E9D" FontSize="9" Margin="0,4,0,0" TextAlignment="Right" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding ModelStorage}" Foreground="#91ACCB" FontSize="9" Margin="0,4,0,0" TextAlignment="Right" TextWrapping="Wrap" />
                 </StackPanel>
               </Grid>
-              <Grid Grid.Row="2"><Border Height="1" Background="#33445D79" /><Border Background="#121A2A" Padding="6,0" HorizontalAlignment="Right"><TextBlock Text="{Binding EnginePrivacyLabel}" Foreground="#4D6987" FontSize="8" /></Border></Grid>
+              <Grid Grid.Row="2"><Border Height="1" Background="#33445D79" /><Border Background="#A6121A2A" Padding="6,0" HorizontalAlignment="Right"><TextBlock Text="{Binding EnginePrivacyLabel}" Foreground="#8DA8C7" FontSize="8" /></Border></Grid>
             </Grid>
           </Border>
 
           <Grid Grid.Row="3" Margin="3,0">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
               <Ellipse Width="5" Height="5" Fill="#35F2B4" Margin="0,0,7,0" />
-              <TextBlock Text="{Binding SystemState}" Foreground="#7189A6" FontSize="8" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding SystemState}" Foreground="#9AB3D0" FontSize="8" FontWeight="SemiBold" />
             </StackPanel>
-            <TextBlock Text="{Binding LastRefreshText}" Foreground="#536E8D" FontSize="8" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding LastRefreshText}" Foreground="#89A6C7" FontSize="8" HorizontalAlignment="Right" VerticalAlignment="Center" />
           </Grid>
         </Grid>
       </Grid>

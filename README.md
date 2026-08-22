@@ -15,7 +15,7 @@ Providers are isolated and independently timed out. An unavailable CPU counter, 
 
 ## Run
 
-Double-click `RunWidget.cmd`. It selects the published native executable first and falls back to running the WinUI project from source when necessary.
+Double-click `StartPanel.bat` to start the widget and `StopPanel.bat` to stop it. The start script avoids launching a duplicate instance and delegates to `RunWidget.cmd`, which selects the published native executable first and falls back to running the WinUI project from source when necessary.
 
 Current published executable:
 
@@ -28,12 +28,13 @@ The publish is a self-contained Windows x64 folder and does not require a separa
 ## Controls
 
 - Drag the header to reposition the widget.
-- Resize continuously from 340 x 440 through 920 x 1120 logical pixels.
+- Release the widget within 24 logical pixels of a screen edge to snap it flush to that edge or corner.
+- Resize continuously from 340 x 480 through 920 x 1120 logical pixels.
 - Typography and card density adapt at compact widths using real font sizes; the complete window is never bitmap-scaled.
-- Click `FX` for compact Lava and Cracks rows with an independent amount slider for each effect. Moving the widget automatically re-enables both effects.
+- Use the three compact theme icons for Regular (effects off), Freeze (icy cracks and icicles), or Lava (hot cracks and molten drips). Freeze is the default.
 - Click `-` to minimize and `x` to exit.
 
-Window position, dimensions, per-effect state, intensity, and topmost state persist in `%LOCALAPPDATA%\AiCoreMonitor\settings.json`.
+Window position, dimensions, selected theme, effect intensity, and topmost state persist in `%LOCALAPPDATA%\AiCoreMonitor\settings.json`.
 
 ## Visual and window architecture
 
@@ -44,8 +45,8 @@ Window position, dimensions, per-effect state, intensity, and topmost state pers
 - DirectWrite text at every size, continuous responsive layout, and no whole-window scale transform.
 - No scroll viewers or scrollbars at any size.
 - GPU-driven Windows Composition glow fields, sparkline, branching top-origin lava fractures, and molten edge flows.
-- A separate no-activate, click-through Win32 layered HWND renders continuous path-based lava across the panel and beyond its lower boundary.
-- The external renderer uses animated viscous Bézier bodies, variable necks, molten bulbs, internal highlights, surface bubbles, and released droplets; it pauses automatically when disabled or minimized.
+- A separate no-activate, click-through Win32 layered HWND renders hot lava or frozen icicles beyond the panel's lower boundary.
+- The external renderer uses animated viscous Bézier lava with molten bulbs and released droplets, plus a dedicated static ice treatment for Freeze; it pauses automatically when disabled or minimized.
 
 ## Build and test
 

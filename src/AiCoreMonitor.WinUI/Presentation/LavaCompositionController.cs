@@ -29,10 +29,10 @@ internal sealed class LavaCompositionController : IDisposable
         _root.RelativeSizeAdjustment = Vector2.One;
         ElementCompositionPreview.SetElementChildVisual(host, _root);
 
-        AddBlob(Color.FromArgb(66, 48, 196, 255), 0.42f, 0.26f, 0.04f, 0.04f, 13f);
-        AddBlob(Color.FromArgb(50, 115, 43, 236), 0.50f, 0.35f, 0.53f, 0.48f, 17f);
-        AddBlob(Color.FromArgb(54, 190, 55, 255), 0.45f, 0.28f, 0.78f, 0.12f, 19f);
-        AddBlob(Color.FromArgb(42, 56, 24, 148), 0.58f, 0.27f, 0.20f, 0.76f, 23f);
+        AddBlob(Color.FromArgb(72, 255, 73, 18), 0.42f, 0.26f, 0.04f, 0.04f, 13f);
+        AddBlob(Color.FromArgb(58, 255, 157, 25), 0.50f, 0.35f, 0.53f, 0.48f, 17f);
+        AddBlob(Color.FromArgb(60, 255, 211, 59), 0.45f, 0.28f, 0.78f, 0.12f, 19f);
+        AddBlob(Color.FromArgb(45, 164, 14, 5), 0.58f, 0.27f, 0.20f, 0.76f, 23f);
 
         AddCrack(3.7f, [(0.06f, 0.00f), (0.09f, 0.05f), (0.055f, 0.10f), (0.10f, 0.15f), (0.045f, 0.22f), (0.075f, 0.30f), (0.025f, 0.39f), (0.035f, 0.52f)]);
         AddCrack(4.3f, [(0.27f, 0.00f), (0.25f, 0.06f), (0.29f, 0.11f), (0.24f, 0.17f), (0.28f, 0.23f), (0.23f, 0.31f)]);
@@ -61,6 +61,8 @@ internal sealed class LavaCompositionController : IDisposable
         {
             _lavaEnabled = value;
             ApplyLavaAmount();
+            if (_width > 0 && _height > 0)
+                foreach (var crack in _cracks) RebuildCrack(crack, _width, _height);
         }
     }
 
@@ -186,9 +188,15 @@ internal sealed class LavaCompositionController : IDisposable
     private void RebuildCrack(CrackLayer crack, float width, float height)
     {
         while (crack.Visual.Shapes.Count > 0) crack.Visual.Shapes.RemoveAt(0);
-        var glowBrush = _compositor.CreateColorBrush(Color.FromArgb(135, 72, 78, 255));
-        var crustBrush = _compositor.CreateColorBrush(Color.FromArgb(230, 21, 10, 67));
-        var coreBrush = _compositor.CreateColorBrush(Color.FromArgb(250, 211, 235, 255));
+        var glowBrush = _compositor.CreateColorBrush(_lavaEnabled
+            ? Color.FromArgb(165, 255, 64, 0)
+            : Color.FromArgb(135, 72, 78, 255));
+        var crustBrush = _compositor.CreateColorBrush(_lavaEnabled
+            ? Color.FromArgb(240, 103, 11, 3)
+            : Color.FromArgb(230, 21, 10, 67));
+        var coreBrush = _compositor.CreateColorBrush(_lavaEnabled
+            ? Color.FromArgb(255, 255, 218, 104)
+            : Color.FromArgb(250, 211, 235, 255));
         var segmentCount = Math.Max(1, (int)Math.Ceiling((crack.Points.Length - 1) * (0.3f + 0.7f * _crackAmount)));
         for (var index = 1; index <= segmentCount; index++)
         {

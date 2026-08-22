@@ -6,12 +6,13 @@ namespace AiCoreMonitor.Infrastructure;
 public sealed class WidgetSettings
 {
     public double Width { get; set; } = 340;
-    public double Height { get; set; } = 440;
+    public double Height { get; set; } = 480;
     public double Left { get; set; } = double.NaN;
     public double Top { get; set; } = double.NaN;
     public bool AnimationEnabled { get; set; } = true;
-    public bool? LavaEnabled { get; set; }
-    public bool? CracksEnabled { get; set; }
+    public bool? LavaEnabled { get; set; } = false;
+    public bool? CracksEnabled { get; set; } = true;
+    public string? VisualMode { get; set; } = "Freeze";
     public double EffectIntensity { get; set; } = 0.78;
     public double? LavaAmount { get; set; }
     public double? CrackAmount { get; set; }
