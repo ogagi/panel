@@ -5,7 +5,10 @@ public sealed record CodexSnapshot(DateTimeOffset ObservedAt, string Plan, int W
     long ContextWindow, string Source);
 
 public sealed record GpuSnapshot(DateTimeOffset ObservedAt, string Name, double UtilizationPercent,
-    double MemoryUsedMiB, double MemoryTotalMiB, double TemperatureC, double PowerWatts);
+    double MemoryUsedMiB, double MemoryTotalMiB, double TemperatureC, double PowerWatts,
+    IReadOnlyList<GpuProcess> Processes);
+
+public sealed record GpuProcess(int ProcessId, string Name, double? MemoryUsedMiB);
 
 public sealed record CpuSnapshot(DateTimeOffset ObservedAt, string Name, double UtilizationPercent,
     int LogicalProcessorCount, double NominalClockGhz);

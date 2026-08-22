@@ -24,7 +24,11 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     public string CodexRemaining => _codex?.Value is { } value ? $"{100 - Math.Clamp(value.UsedPercent, 0, 100):N1}%" : "--%";
     public double CodexUsedPercent => Math.Clamp(_codex?.Value?.UsedPercent ?? 0, 0, 100);
     public string CodexPlan => _codex?.Value is { } value ? $"{value.Plan.ToUpperInvariant()} / {FormatWindow(value.WindowMinutes)}" : "UNAVAILABLE";
-    public string CodexReset => _codex?.Value?.ResetsAt is { } reset ? $"RESET {reset:ddd HH:mm}" : "NO RESET DATA";
+    public string CodexReset => _codex?.Value?.ResetsAt is { } reset
+        ? reset > DateTimeOffset.Now
+            ? $"RESETS {reset:ddd dd MMM HH:mm}".ToUpperInvariant()
+            : "RESET DATA STALE"
+        : "NO RESET DATA";
     public string CodexTokens => _codex?.Value is { } value ? $"{Compact(value.TotalTokens)} CONTEXT TOKENS" : "NO TOKEN DATA";
 
     public string CpuName => _cpu?.Value?.Name.ToUpperInvariant() ?? "CPU UNAVAILABLE";
@@ -43,6 +47,8 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     public string GpuMemory => _gpu?.Value is { } value ? $"{value.MemoryUsedMiB / 1024:N1} / {value.MemoryTotalMiB / 1024:N1} GB" : "-- / -- GB";
     public string GpuThermals => _gpu?.Value is { } value ? $"{value.TemperatureC:N0} C   /   {value.PowerWatts:N0} W" : "-- C   /   -- W";
     public string GpuDetails => $"{GpuMemory}   /   {GpuThermals}";
+    public string GpuVramConsumer => _gpu?.Value is { } value ? FormatGpuVramConsumer(value) : "VRAM PROCESS UNAVAILABLE";
+    public string GpuVramTooltip => _gpu?.Value is { } value ? FormatGpuVramTooltip(value) : "No NVIDIA process data is available.";
     public double[] GpuSamples { get => _gpuSamples; private set => Set(ref _gpuSamples, value); }
 
     public string ModelCount => _localEngine?.Value is { } value ? value.InstalledCount.ToString(CultureInfo.InvariantCulture) : "--";
@@ -120,6 +126,7 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
         foreach (var property in new[] { nameof(CodexRemaining), nameof(CodexUsedPercent), nameof(CodexPlan), nameof(CodexReset), nameof(CodexTokens),
                      nameof(CpuName), nameof(CpuUsage), nameof(CpuUsagePercent), nameof(CpuDetails),
                      nameof(GpuName), nameof(GpuUsage), nameof(GpuUsagePercent), nameof(GpuMemory), nameof(GpuThermals), nameof(GpuDetails),
+                     nameof(GpuVramConsumer), nameof(GpuVramTooltip),
                      nameof(ModelCount), nameof(ModelCountLabel), nameof(LocalEngineState), nameof(ActiveEngine), nameof(ActiveModel),
                      nameof(ActiveModelShort), nameof(ModelStorage), nameof(EnginePrivacyLabel),
                      nameof(AvailableProviders), nameof(SystemState), nameof(StatusColor), nameof(ErrorSummary) })
@@ -147,6 +154,61 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
         if (name.EndsWith(":latest", StringComparison.OrdinalIgnoreCase))
             name = name[..^":latest".Length];
         return name.Length <= 24 ? name : $"{name[..21].TrimEnd('-', '_', '.')}...";
+    }
+
+    internal static string FormatGpuVramConsumer(GpuSnapshot value)
+    {
+        var usage = value.MemoryTotalMiB > 0 ? value.MemoryUsedMiB / value.MemoryTotalMiB * 100 : 0;
+        var process = SelectLikelyGpuConsumer(value.Processes);
+        if (process is null)
+            return value.Processes.Count > 0
+                ? $"{usage:N0}% VRAM   /   {value.Processes.Count} GPU PROCESSES"
+                : $"{usage:N0}% VRAM   /   NO PROCESS DATA";
+
+        var name = Path.GetFileNameWithoutExtension(process.Name).ToUpperInvariant();
+        var detail = process.MemoryUsedMiB is { } memory
+            ? $"{memory / 1024:N1} GB"
+            : $"PID {process.ProcessId}";
+        return $"{usage:N0}% VRAM   /   {name} {detail}";
+    }
+
+    internal static GpuProcess? SelectLikelyGpuConsumer(IReadOnlyList<GpuProcess> processes)
+    {
+        var measured = processes.Where(process => process.MemoryUsedMiB is not null)
+            .OrderByDescending(process => process.MemoryUsedMiB)
+            .FirstOrDefault();
+        if (measured is not null) return measured;
+
+        return processes.Select(process => (Process: process, Rank: GpuProcessRank(process.Name)))
+            .Where(candidate => candidate.Rank > 0)
+            .OrderByDescending(candidate => candidate.Rank)
+            .ThenBy(candidate => candidate.Process.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(candidate => candidate.Process)
+            .FirstOrDefault();
+    }
+
+    private static string FormatGpuVramTooltip(GpuSnapshot value)
+    {
+        var process = SelectLikelyGpuConsumer(value.Processes);
+        if (process is null) return value.Processes.Count == 0
+            ? "NVIDIA did not report any GPU processes."
+            : $"NVIDIA reports {value.Processes.Count} GPU processes, but Windows WDDM does not expose their individual VRAM usage.";
+        return process.MemoryUsedMiB is { } memory
+            ? $"Largest reported GPU process: {process.Name} (PID {process.ProcessId}), {memory / 1024:N1} GB."
+            : $"Likely compute process: {process.Name} (PID {process.ProcessId}). Windows WDDM does not expose its individual VRAM usage.";
+    }
+
+    private static int GpuProcessRank(string name)
+    {
+        var value = Path.GetFileNameWithoutExtension(name);
+        if (value.Contains("agent-os-engine", StringComparison.OrdinalIgnoreCase)) return 100;
+        if (value.Contains("ollama", StringComparison.OrdinalIgnoreCase)) return 95;
+        if (value.Contains("llama", StringComparison.OrdinalIgnoreCase)) return 90;
+        if (value.Contains("comfy", StringComparison.OrdinalIgnoreCase) ||
+            value.Contains("stable-diffusion", StringComparison.OrdinalIgnoreCase)) return 85;
+        if (value.Contains("python", StringComparison.OrdinalIgnoreCase)) return 70;
+        if (value.Contains("blender", StringComparison.OrdinalIgnoreCase)) return 60;
+        return 0;
     }
 
     private static string FormatBackend(string value) => value switch

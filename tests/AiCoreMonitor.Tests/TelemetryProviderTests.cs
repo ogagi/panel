@@ -39,6 +39,25 @@ public sealed class TelemetryProviderTests
     }
 
     [TestMethod]
+    public async Task CodexProvider_IgnoresModelSpecificLimitAndUsesNewestAccountLimit()
+    {
+        const string accountLimit = """
+            {"timestamp":"2026-08-22T12:00:00+00:00","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"total_tokens":12345}},"rate_limits":{"limit_id":"codex","plan_type":"pro","primary":{"window_minutes":10080,"used_percent":53,"resets_at":1787801345}}}}
+            """;
+        const string modelLimit = """
+            {"timestamp":"2026-08-22T13:00:00+00:00","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"total_tokens":99999}},"rate_limits":{"limit_id":"codex_bengalfox","limit_name":"GPT-5.3-Codex-Spark","plan_type":"pro","primary":{"window_minutes":300,"used_percent":0,"resets_at":1787808000}}}}
+            """;
+        await File.WriteAllLinesAsync(Path.Combine(_temporaryRoot!, "fixture.jsonl"),
+            [accountLimit, modelLimit]);
+
+        var snapshot = await new CodexTelemetryProvider(_temporaryRoot).CollectAsync(CancellationToken.None);
+
+        Assert.AreEqual(12_345, snapshot.TotalTokens);
+        Assert.AreEqual(53, snapshot.UsedPercent);
+        Assert.AreEqual(10_080, snapshot.WindowMinutes);
+    }
+
+    [TestMethod]
     public void NvidiaParser_UsesInvariantCsvMetrics()
     {
         var snapshot = NvidiaGpuTelemetryProvider.Parse("NVIDIA GeForce RTX 5060 Ti, 73, 8123, 16311, 61, 145.25");
@@ -47,6 +66,22 @@ public sealed class TelemetryProviderTests
         Assert.AreEqual(73, snapshot.UtilizationPercent);
         Assert.AreEqual(16_311, snapshot.MemoryTotalMiB);
         Assert.AreEqual(145.25, snapshot.PowerWatts);
+    }
+
+    [TestMethod]
+    public void NvidiaProcessParser_HandlesWddmUnavailableMemory()
+    {
+        const string output = """
+            18752, C:\MyProjects\agents\agent-os-engine.exe, [N/A]
+            5580, C:\Program Files\Microsoft\Edge\msedge.exe, [N/A]
+            1772, [Insufficient Permissions], [N/A]
+            """;
+
+        var processes = NvidiaGpuTelemetryProvider.ParseProcesses(output);
+
+        Assert.HasCount(2, processes);
+        Assert.AreEqual("agent-os-engine.exe", processes[0].Name);
+        Assert.IsNull(processes[0].MemoryUsedMiB);
     }
 
     [TestMethod]
