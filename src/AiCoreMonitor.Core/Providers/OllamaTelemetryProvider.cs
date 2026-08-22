@@ -26,12 +26,14 @@ public sealed class OllamaTelemetryProvider(HttpClient httpClient) : ITelemetryP
             foreach (var model in modelArray.EnumerateArray())
             {
                 model.TryGetProperty("details", out var details);
+                var name = GetString(model, "name") ?? "Unknown model";
                 models.Add(new LocalModel(
-                    GetString(model, "name") ?? "Unknown model",
+                    name,
                     GetInt64(model, "size"),
                     GetString(details, "family"),
                     GetString(details, "parameter_size"),
-                    GetString(details, "quantization_level")));
+                    GetString(details, "quantization_level"),
+                    name));
             }
         }
 

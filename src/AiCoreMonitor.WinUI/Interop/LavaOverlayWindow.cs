@@ -27,6 +27,16 @@ internal sealed class LavaOverlayWindow : IDisposable
         new(0.68f, 0.20f, 0.048f, 4.5f, 0.52f, 0.66f),
         new(0.91f, 0.55f, 0.036f, 5.8f, 0.86f, 0.75f)
     ];
+    private static readonly Icicle[] Icicles =
+    [
+        new(0.07f, 0.42f, 7f),
+        new(0.19f, 0.68f, 9f),
+        new(0.34f, 0.34f, 6f),
+        new(0.49f, 0.86f, 10f),
+        new(0.64f, 0.50f, 7f),
+        new(0.79f, 0.73f, 9f),
+        new(0.93f, 0.39f, 6f)
+    ];
 
     private readonly object _sync = new();
     private readonly Stopwatch _clock = Stopwatch.StartNew();
@@ -40,6 +50,7 @@ internal sealed class LavaOverlayWindow : IDisposable
     private int _height;
     private int _panelHeight;
     private bool _enabled = true;
+    private bool _frozen;
     private float _amount = 0.78f;
     private bool _disposed;
 
@@ -81,6 +92,12 @@ internal sealed class LavaOverlayWindow : IDisposable
         set => _amount = Math.Clamp(value, 0.1f, 1f);
     }
 
+    public bool IsFrozen
+    {
+        get => _frozen;
+        set => _frozen = value;
+    }
+
     public void UpdateBounds(int x, int y, int width, int height, int panelHeight, bool topmost)
     {
         lock (_sync)
@@ -91,8 +108,11 @@ internal sealed class LavaOverlayWindow : IDisposable
             _height = Math.Max(1, height);
             _panelHeight = Math.Clamp(panelHeight, 1, _height);
             if (_window != 0)
+            {
+                var flags = SwpNoActivate | (_enabled ? SwpShowWindow : 0);
                 _ = SetWindowPos(_window, topmost ? HwndTopmost : HwndNotTopmost,
-                    _x, _y, _width, _height, SwpNoActivate | SwpShowWindow);
+                    _x, _y, _width, _height, flags);
+            }
         }
     }
 
@@ -108,9 +128,61 @@ internal sealed class LavaOverlayWindow : IDisposable
             graphics.CompositingQuality = CompositingQuality.HighQuality;
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
             graphics.Clear(Color.Transparent);
-            DrawLava(graphics, _width, _height, _panelHeight, _clock.Elapsed.TotalSeconds, _amount);
+            if (_frozen)
+                DrawIce(graphics, _width, _height, _panelHeight, _amount);
+            else
+                DrawLava(graphics, _width, _height, _panelHeight, _clock.Elapsed.TotalSeconds, _amount);
             Present(bitmap);
         }
+    }
+
+    private static void DrawIce(Graphics graphics, int width, int height, int panelHeight, float amount)
+    {
+        var state = graphics.Save();
+        graphics.TranslateTransform(0, panelHeight - 8);
+
+        using var lip = CreatePoolPath(width, 0.35);
+        using var lipGlow = new Pen(Color.FromArgb(88, 43, 136, 255), 12) { LineJoin = LineJoin.Round };
+        graphics.DrawPath(lipGlow, lip);
+        using var lipFill = new LinearGradientBrush(new Rectangle(0, -4, width, 30),
+            Color.FromArgb(238, 214, 248, 255), Color.FromArgb(224, 65, 116, 244), LinearGradientMode.Vertical);
+        graphics.FillPath(lipFill, lip);
+        using var lipHighlight = new Pen(Color.FromArgb(232, 230, 251, 255), 1.4f);
+        graphics.DrawPath(lipHighlight, lip);
+
+        var runway = Math.Max(0, height - panelHeight + 6);
+        if (runway > 12)
+        {
+            var count = Math.Clamp((int)Math.Ceiling(Icicles.Length * amount), 1, Icicles.Length);
+            foreach (var icicle in Icicles.Take(count))
+            {
+                var length = Math.Min(runway - 3, 14 + runway * icicle.LengthRatio * (0.45f + 0.55f * amount));
+                var centerX = width * icicle.X;
+                var half = icicle.Width * 0.5f;
+                using var path = new GraphicsPath();
+                path.StartFigure();
+                path.AddBezier(centerX - half, 2, centerX - half * 0.92f, length * 0.28f,
+                    centerX - half * 0.30f, length * 0.74f, centerX, length);
+                path.AddBezier(centerX, length, centerX + half * 0.28f, length * 0.74f,
+                    centerX + half * 0.92f, length * 0.28f, centerX + half, 2);
+                path.CloseFigure();
+
+                using var glow = new Pen(Color.FromArgb(74, 45, 111, 255), icicle.Width * 1.25f)
+                { LineJoin = LineJoin.Round };
+                graphics.DrawPath(glow, path);
+                using var fill = new LinearGradientBrush(
+                    new RectangleF(centerX - icicle.Width, 0, icicle.Width * 2, Math.Max(1, length)),
+                    Color.FromArgb(242, 220, 249, 255), Color.FromArgb(226, 62, 92, 232), LinearGradientMode.Vertical);
+                graphics.FillPath(fill, path);
+                using var edge = new Pen(Color.FromArgb(224, 121, 181, 255), 1.1f) { LineJoin = LineJoin.Round };
+                graphics.DrawPath(edge, path);
+                using var highlight = new Pen(Color.FromArgb(215, 239, 253, 255), 0.9f)
+                { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                graphics.DrawLine(highlight, centerX - half * 0.24f, 5, centerX - half * 0.06f, length * 0.72f);
+            }
+        }
+
+        graphics.Restore(state);
     }
 
     private static void DrawLava(Graphics graphics, int width, int height, int panelHeight, double time, float amount)
@@ -122,12 +194,12 @@ internal sealed class LavaOverlayWindow : IDisposable
         var bottom = graphics.Save();
         graphics.TranslateTransform(0, panelHeight - 8);
         using var pool = CreatePoolPath(width, time);
-        using var poolGlow = new Pen(Color.FromArgb(64, 104, 43, 255), 14) { LineJoin = LineJoin.Round };
+        using var poolGlow = new Pen(Color.FromArgb(72, 255, 60, 0), 14) { LineJoin = LineJoin.Round };
         graphics.DrawPath(poolGlow, pool);
         using var poolBrush = new LinearGradientBrush(new Rectangle(0, -2, width, 30),
-            Color.FromArgb(248, 61, 225, 255), Color.FromArgb(220, 126, 39, 231), LinearGradientMode.Vertical);
+            Color.FromArgb(248, 255, 179, 24), Color.FromArgb(235, 190, 23, 10), LinearGradientMode.Vertical);
         graphics.FillPath(poolBrush, pool);
-        using var poolHighlight = new Pen(Color.FromArgb(220, 190, 247, 255), 1.6f);
+        using var poolHighlight = new Pen(Color.FromArgb(230, 255, 236, 152), 1.6f);
         graphics.DrawPath(poolHighlight, pool);
 
         DrawPoolBubbles(graphics, width, time);
@@ -149,9 +221,9 @@ internal sealed class LavaOverlayWindow : IDisposable
             var strandState = graphics.Save();
             graphics.TranslateTransform(0, panelHeight - 3);
             using var path = CreateViscousDrip(centerX, length, drip.Width * pulse, drip.BulbScale, sway, time + drip.Phase * 11);
-            using var outerGlow = new Pen(Color.FromArgb((int)(52 * fade), 103, 41, 255), drip.Width * 1.9f)
+            using var outerGlow = new Pen(Color.FromArgb((int)(58 * fade), 255, 55, 0), drip.Width * 1.9f)
             { LineJoin = LineJoin.Round };
-            using var innerGlow = new Pen(Color.FromArgb((int)(98 * fade), 30, 193, 255), drip.Width * 0.72f)
+            using var innerGlow = new Pen(Color.FromArgb((int)(105 * fade), 255, 153, 24), drip.Width * 0.72f)
             { LineJoin = LineJoin.Round };
             graphics.DrawPath(outerGlow, path);
             graphics.DrawPath(innerGlow, path);
@@ -159,7 +231,7 @@ internal sealed class LavaOverlayWindow : IDisposable
             using var fill = CreateLavaBrush(centerX, length, drip.Width, fade);
             graphics.FillPath(fill, path);
             DrawFlowTexture(graphics, path, centerX, length, drip.Width, sway, time + drip.Phase * 11, fade);
-            using var edge = new Pen(Color.FromArgb((int)(205 * fade), 53, 19, 126), 1.35f) { LineJoin = LineJoin.Round };
+            using var edge = new Pen(Color.FromArgb((int)(215 * fade), 117, 12, 5), 1.35f) { LineJoin = LineJoin.Round };
             graphics.DrawPath(edge, path);
             DrawInternalHighlight(graphics, centerX, length, drip.Width, sway, fade);
             DrawBulbLight(graphics, centerX + sway, length, drip.Width * drip.BulbScale, fade);
@@ -188,11 +260,11 @@ internal sealed class LavaOverlayWindow : IDisposable
         }
         sheet.CloseFigure();
 
-        using var sheetGlow = new Pen(Color.FromArgb(58, 97, 49, 255), 10) { LineJoin = LineJoin.Round };
+        using var sheetGlow = new Pen(Color.FromArgb(64, 255, 65, 0), 10) { LineJoin = LineJoin.Round };
         graphics.DrawPath(sheetGlow, sheet);
         using var sheetFill = CreateSurfaceBrush(new RectangleF(0, 0, width, 22));
         graphics.FillPath(sheetFill, sheet);
-        using var sheetEdge = new Pen(Color.FromArgb(210, 190, 244, 255), 1.2f);
+        using var sheetEdge = new Pen(Color.FromArgb(220, 255, 226, 124), 1.2f);
         graphics.DrawPath(sheetEdge, sheet);
 
         var strands = new (float X, float Length, float Width, float Phase)[]
@@ -228,11 +300,11 @@ internal sealed class LavaOverlayWindow : IDisposable
         path.AddBezier(edge + side * 2 + half, panelHeight - 5, edge + wobble2 + half, panelHeight * 0.62f,
             edge + wobble1 + half, panelHeight * 0.28f, edge + half, 8);
         path.CloseFigure();
-        using var glow = new Pen(Color.FromArgb(54, 99, 47, 255), 10) { LineJoin = LineJoin.Round };
+        using var glow = new Pen(Color.FromArgb(60, 255, 59, 0), 10) { LineJoin = LineJoin.Round };
         graphics.DrawPath(glow, path);
         using var fill = CreateSurfaceBrush(new RectangleF(edge - 8, 0, 16, panelHeight));
         graphics.FillPath(fill, path);
-        using var rim = new Pen(Color.FromArgb(190, 177, 231, 255), 0.9f) { LineJoin = LineJoin.Round };
+        using var rim = new Pen(Color.FromArgb(205, 255, 211, 104), 0.9f) { LineJoin = LineJoin.Round };
         graphics.DrawPath(rim, path);
     }
 
@@ -244,11 +316,11 @@ internal sealed class LavaOverlayWindow : IDisposable
             Positions = [0, 0.24f, 0.48f, 0.72f, 1],
             Colors =
             [
-                Color.FromArgb(235, 35, 8, 91),
-                Color.FromArgb(245, 78, 48, 222),
-                Color.FromArgb(250, 105, 221, 255),
-                Color.FromArgb(240, 128, 47, 239),
-                Color.FromArgb(230, 28, 5, 76)
+                Color.FromArgb(235, 82, 7, 2),
+                Color.FromArgb(245, 204, 37, 8),
+                Color.FromArgb(250, 255, 190, 30),
+                Color.FromArgb(240, 239, 72, 9),
+                Color.FromArgb(230, 67, 5, 3)
             ]
         };
         return brush;
@@ -257,13 +329,13 @@ internal sealed class LavaOverlayWindow : IDisposable
     private static void DrawStrand(Graphics graphics, GraphicsPath path, float centerX, float length,
         float width, float sway, double time, float fade)
     {
-        using var outerGlow = new Pen(Color.FromArgb((int)(52 * fade), 103, 41, 255), width * 1.9f)
+        using var outerGlow = new Pen(Color.FromArgb((int)(58 * fade), 255, 55, 0), width * 1.9f)
         { LineJoin = LineJoin.Round };
         graphics.DrawPath(outerGlow, path);
         using var fill = CreateLavaBrush(centerX, length, width, fade);
         graphics.FillPath(fill, path);
         DrawFlowTexture(graphics, path, centerX, length, width, sway, time, fade);
-        using var edge = new Pen(Color.FromArgb((int)(205 * fade), 53, 19, 126), 1.1f) { LineJoin = LineJoin.Round };
+        using var edge = new Pen(Color.FromArgb((int)(215 * fade), 117, 12, 5), 1.1f) { LineJoin = LineJoin.Round };
         graphics.DrawPath(edge, path);
         DrawInternalHighlight(graphics, centerX, length, width, sway, fade);
     }
@@ -338,10 +410,10 @@ internal sealed class LavaOverlayWindow : IDisposable
             Positions = [0, 0.22f, 0.64f, 1],
             Colors =
             [
-                Color.FromArgb((int)(248 * fade), 190, 245, 255),
-                Color.FromArgb((int)(242 * fade), 43, 193, 255),
-                Color.FromArgb((int)(232 * fade), 92, 65, 242),
-                Color.FromArgb((int)(242 * fade), 170, 55, 246)
+                Color.FromArgb((int)(248 * fade), 255, 229, 128),
+                Color.FromArgb((int)(245 * fade), 255, 168, 25),
+                Color.FromArgb((int)(238 * fade), 239, 62, 9),
+                Color.FromArgb((int)(242 * fade), 151, 14, 5)
             ]
         };
         return brush;
@@ -367,22 +439,22 @@ internal sealed class LavaOverlayWindow : IDisposable
                     Positions = [0, 0.18f, 0.43f, 0.65f, 1],
                     Colors =
                     [
-                        Color.FromArgb((int)(185 * fade), 25, 3, 76),
-                        Color.FromArgb((int)(42 * fade), 61, 25, 180),
-                        Color.FromArgb((int)(145 * fade), 205, 252, 255),
-                        Color.FromArgb((int)(35 * fade), 84, 82, 255),
-                        Color.FromArgb((int)(190 * fade), 28, 3, 82)
+                        Color.FromArgb((int)(190 * fade), 78, 5, 2),
+                        Color.FromArgb((int)(50 * fade), 210, 45, 5),
+                        Color.FromArgb((int)(165 * fade), 255, 238, 154),
+                        Color.FromArgb((int)(45 * fade), 255, 112, 12),
+                        Color.FromArgb((int)(195 * fade), 69, 4, 2)
                     ]
                 }
             };
             graphics.FillRectangle(volume, centerX - width * 2, 0, width * 4, length + width);
 
             DrawCausticVein(graphics, centerX, length, width, sway, time, -0.31f,
-                Color.FromArgb((int)(155 * fade), 210, 250, 255), Math.Max(1.1f, width * 0.13f));
+                Color.FromArgb((int)(170 * fade), 255, 239, 164), Math.Max(1.1f, width * 0.13f));
             DrawCausticVein(graphics, centerX, length, width, sway, time * 0.83 + 2.4, 0.25f,
-                Color.FromArgb((int)(100 * fade), 68, 235, 255), Math.Max(1.5f, width * 0.22f));
+                Color.FromArgb((int)(110 * fade), 255, 138, 24), Math.Max(1.5f, width * 0.22f));
             DrawCausticVein(graphics, centerX, length, width, sway, time * 0.67 + 4.8, 0.05f,
-                Color.FromArgb((int)(125 * fade), 70, 14, 142), Math.Max(1.2f, width * 0.18f));
+                Color.FromArgb((int)(135 * fade), 129, 10, 3), Math.Max(1.2f, width * 0.18f));
 
             for (var index = 0; index < 3; index++)
             {
@@ -391,7 +463,7 @@ internal sealed class LavaOverlayWindow : IDisposable
                 var x = centerX + sway * (y / Math.Max(1, length)) +
                         (float)Math.Sin(phase * 3.7) * width * 0.32f;
                 var radius = Math.Max(1.2f, width * (0.07f + index * 0.018f));
-                using var bubble = new Pen(Color.FromArgb((int)(120 * fade), 210, 250, 255), 0.9f);
+                using var bubble = new Pen(Color.FromArgb((int)(130 * fade), 255, 231, 145), 0.9f);
                 graphics.DrawEllipse(bubble, x - radius, y - radius, radius * 2, radius * 2);
             }
         }
@@ -423,7 +495,7 @@ internal sealed class LavaOverlayWindow : IDisposable
             centerX - width * 0.42f, length * 0.22f,
             centerX + sway * 0.30f - width * 0.18f, length * 0.48f,
             centerX + sway * 0.72f - width * 0.20f, length * 0.72f);
-        using var glow = new Pen(Color.FromArgb((int)(195 * fade), 202, 248, 255), Math.Max(1.2f, width * 0.16f))
+        using var glow = new Pen(Color.FromArgb((int)(205 * fade), 255, 238, 163), Math.Max(1.2f, width * 0.16f))
         { StartCap = LineCap.Round, EndCap = LineCap.Round };
         graphics.DrawPath(glow, highlight);
     }
@@ -436,8 +508,8 @@ internal sealed class LavaOverlayWindow : IDisposable
         using var light = new PathGradientBrush(ellipse)
         {
             CenterPoint = new PointF(centerX - radius * 0.22f, length - radius * 0.76f),
-            CenterColor = Color.FromArgb((int)(235 * fade), 203, 247, 255),
-            SurroundColors = [Color.FromArgb(0, 106, 52, 238)]
+            CenterColor = Color.FromArgb((int)(240 * fade), 255, 240, 170),
+            SurroundColors = [Color.FromArgb(0, 197, 32, 6)]
         };
         graphics.FillPath(light, ellipse);
     }
@@ -448,12 +520,12 @@ internal sealed class LavaOverlayWindow : IDisposable
         var y = sourceY + 8 + eased * Math.Max(10, height - sourceY - 18);
         var radius = drip.Width * drip.BulbScale * (0.52f + 0.18f * (1 - release));
         var alpha = (int)(230 * (1 - release * 0.68f));
-        using var glow = new SolidBrush(Color.FromArgb(alpha / 3, 120, 45, 255));
+        using var glow = new SolidBrush(Color.FromArgb(alpha / 3, 255, 53, 0));
         graphics.FillEllipse(glow, centerX - radius * 1.8f, y - radius * 1.8f, radius * 3.6f, radius * 3.6f);
         using var body = new LinearGradientBrush(new RectangleF(centerX - radius, y - radius, radius * 2, radius * 2.4f),
-            Color.FromArgb(alpha, 84, 218, 255), Color.FromArgb(alpha, 178, 64, 255), LinearGradientMode.Vertical);
+            Color.FromArgb(alpha, 255, 187, 35), Color.FromArgb(alpha, 213, 39, 8), LinearGradientMode.Vertical);
         graphics.FillEllipse(body, centerX - radius, y - radius, radius * 2, radius * 2.4f);
-        using var shine = new SolidBrush(Color.FromArgb(alpha, 210, 250, 255));
+        using var shine = new SolidBrush(Color.FromArgb(alpha, 255, 240, 172));
         graphics.FillEllipse(shine, centerX - radius * 0.36f, y - radius * 0.55f, radius * 0.38f, radius * 0.52f);
     }
 
@@ -464,7 +536,7 @@ internal sealed class LavaOverlayWindow : IDisposable
             var phase = time * (0.62 + index * 0.035) + index * 1.83;
             var x = width * (0.08f + index * 0.14f) + (float)Math.Sin(phase) * 8;
             var radius = 1.6f + 1.7f * (0.5f + 0.5f * (float)Math.Sin(phase * 1.7));
-            using var bubble = new Pen(Color.FromArgb(155, 189, 244, 255), 1);
+            using var bubble = new Pen(Color.FromArgb(170, 255, 227, 139), 1);
             graphics.DrawEllipse(bubble, x - radius, 4 - radius, radius * 2, radius * 2);
         }
     }
@@ -510,6 +582,7 @@ internal sealed class LavaOverlayWindow : IDisposable
     private static nint WindowProc(nint window, uint message, nint wParam, nint lParam) => DefWindowProc(window, message, wParam, lParam);
 
     private readonly record struct Drip(float X, float Phase, float Speed, float Width, float LengthRatio, float BulbScale);
+    private readonly record struct Icicle(float X, float LengthRatio, float Width);
     private delegate nint WindowProcedure(nint window, uint message, nint wParam, nint lParam);
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

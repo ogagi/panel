@@ -6,6 +6,13 @@ using WinRT;
 
 namespace AiCoreMonitor.WinUI.Presentation;
 
+internal enum PanelVisualMode
+{
+    Regular,
+    Freeze,
+    Lava
+}
+
 internal sealed class GlassBackdropController : IDisposable
 {
     private readonly SystemBackdropConfiguration _configuration = new()
@@ -19,15 +26,25 @@ internal sealed class GlassBackdropController : IDisposable
     {
         if (!DesktopAcrylicController.IsSupported()) return;
 
-        _controller = new DesktopAcrylicController
-        {
-            TintColor = Color.FromArgb(255, 7, 13, 27),
-            TintOpacity = 0.18f,
-            LuminosityOpacity = 0.13f,
-            FallbackColor = Color.FromArgb(255, 10, 16, 29)
-        };
+        _controller = new DesktopAcrylicController();
+        ApplyTheme(PanelVisualMode.Regular);
         _controller.AddSystemBackdropTarget(window.As<ICompositionSupportsSystemBackdrop>());
         _controller.SetSystemBackdropConfiguration(_configuration);
+    }
+
+    public void ApplyTheme(PanelVisualMode mode)
+    {
+        if (_controller is null) return;
+        var (tint, tintOpacity, luminosityOpacity, fallback) = mode switch
+        {
+            PanelVisualMode.Freeze => (Color.FromArgb(255, 7, 13, 27), 0.62f, 0.08f, Color.FromArgb(255, 10, 16, 29)),
+            PanelVisualMode.Lava => (Color.FromArgb(255, 25, 4, 2), 1.0f, 0.0f, Color.FromArgb(255, 20, 5, 3)),
+            _ => (Color.FromArgb(255, 5, 10, 18), 1.0f, 0.0f, Color.FromArgb(255, 7, 12, 21))
+        };
+        _controller.TintColor = tint;
+        _controller.TintOpacity = tintOpacity;
+        _controller.LuminosityOpacity = luminosityOpacity;
+        _controller.FallbackColor = fallback;
     }
 
     public void Dispose() => _controller?.Dispose();

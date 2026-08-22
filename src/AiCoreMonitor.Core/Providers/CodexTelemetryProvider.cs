@@ -24,6 +24,7 @@ public sealed class CodexTelemetryProvider(string? sessionRoot = null) : ITeleme
             .OrderByDescending(file => file.LastWriteTimeUtc)
             .Take(MaxFiles);
 
+        CodexSnapshot? latest = null;
         foreach (var file in files)
         {
             var tail = await ReadTailAsync(file.FullName, MaxTailBytes, cancellationToken).ConfigureAwait(false);
@@ -31,11 +32,13 @@ public sealed class CodexTelemetryProvider(string? sessionRoot = null) : ITeleme
             for (var index = lines.Length - 1; index >= 0; index--)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (TryParseEvent(lines[index].TrimEnd('\r'), _sessionRoot, out var snapshot))
-                    return snapshot!;
+                if (TryParseEvent(lines[index].TrimEnd('\r'), file.FullName, out var snapshot) &&
+                    (latest is null || snapshot!.ObservedAt > latest.ObservedAt))
+                    latest = snapshot;
             }
         }
 
+        if (latest is not null) return latest;
         throw new InvalidDataException("No Codex token telemetry has been recorded yet.");
     }
 
@@ -57,6 +60,9 @@ public sealed class CodexTelemetryProvider(string? sessionRoot = null) : ITeleme
 
             payload.TryGetProperty("info", out var info);
             payload.TryGetProperty("rate_limits", out var limits);
+            var limitId = GetString(limits, "limit_id");
+            if (limitId is not null && !limitId.Equals("codex", StringComparison.OrdinalIgnoreCase))
+                return false;
             limits.TryGetProperty("primary", out var primary);
 
             DateTimeOffset? resetAt = null;
