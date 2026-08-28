@@ -1,14 +1,18 @@
 @echo off
-set "APP=%~dp0artifacts\publish\winui-fx-menu\AiCoreMonitor.exe"
-if exist "%APP%" (
-    start "" "%APP%"
-    exit /b 0
-)
-
+set "BUILD=%~dp0artifacts\publish\winui-current"
+set "APP=%BUILD%\AiCoreMonitor.exe"
 set "DOTNET=%LOCALAPPDATA%\Microsoft\dotnet\dotnet.exe"
+if not exist "%DOTNET%" set "DOTNET=%ProgramFiles%\dotnet\dotnet.exe"
 set "PROJECT=%~dp0src\AiCoreMonitor.WinUI\AiCoreMonitor.WinUI.csproj"
+
 if exist "%DOTNET%" (
-    start "" "%DOTNET%" run --project "%PROJECT%" -c Release -p:Platform=x64
+    "%DOTNET%" publish "%PROJECT%" -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:PublishSingleFile=false -p:EnableMsixTooling=true -o "%BUILD%" --nologo
+    if errorlevel 1 exit /b 1
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0SignBuild.ps1" -BuildDirectory "%BUILD%"
+    if errorlevel 1 exit /b 1
+
+    start "" "%APP%"
     exit /b 0
 )
 

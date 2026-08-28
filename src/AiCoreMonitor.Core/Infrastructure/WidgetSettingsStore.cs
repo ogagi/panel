@@ -5,17 +5,24 @@ namespace AiCoreMonitor.Infrastructure;
 
 public sealed class WidgetSettings
 {
-    public double Width { get; set; } = 340;
-    public double Height { get; set; } = 440;
+    public double Width { get; set; } = 460;
+    public double Height { get; set; } = 560;
     public double Left { get; set; } = double.NaN;
     public double Top { get; set; } = double.NaN;
     public bool AnimationEnabled { get; set; } = true;
     public bool? LavaEnabled { get; set; }
     public bool? CracksEnabled { get; set; }
-    public double EffectIntensity { get; set; } = 0.78;
-    public double? LavaAmount { get; set; }
-    public double? CrackAmount { get; set; }
+    public double EffectIntensity { get; set; } = 0.40;
+    public double? LavaAmount { get; set; } = 0.40;
+    public double? CrackAmount { get; set; } = 0.46;
     public bool Topmost { get; set; } = true;
+    // WinUI itself is composed by Windows. This controls the panel-owned Composition visuals.
+    public bool GpuVisualsEnabled { get; set; } = true;
+    // EffectHue is retained to migrate settings saved before the colors were independent.
+    public double EffectHue { get; set; } = 215;
+    public double? LavaHue { get; set; } = 235;
+    public double? CrackHue { get; set; } = 215;
+    public double EffectVariation { get; set; } = 0.82;
 }
 
 public sealed class WidgetSettingsStore

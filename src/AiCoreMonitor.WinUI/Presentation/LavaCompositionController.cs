@@ -20,6 +20,8 @@ internal sealed class LavaCompositionController : IDisposable
     private float _crackAmount = 0.78f;
     private float _width;
     private float _height;
+    private float _crackHue = 220f;
+    private float _variation = 1f;
 
     public LavaCompositionController(FrameworkElement host)
     {
@@ -94,6 +96,27 @@ internal sealed class LavaCompositionController : IDisposable
         }
     }
 
+    public float CrackHue
+    {
+        get => _crackHue;
+        set
+        {
+            _crackHue = Math.Clamp(value, 0f, 360f);
+            if (_width > 0 && _height > 0)
+                foreach (var crack in _cracks) RebuildCrack(crack, _width, _height);
+        }
+    }
+
+    public float Variation
+    {
+        get => _variation;
+        set
+        {
+            _variation = Math.Clamp(value, 0.25f, 2f);
+            if (_width > 0 && _height > 0) ApplyLayout(_width, _height);
+        }
+    }
+
     private void ApplyLavaAmount()
     {
         var visibleCount = (int)Math.Ceiling(_blobs.Count * _lavaAmount);
@@ -148,23 +171,31 @@ internal sealed class LavaCompositionController : IDisposable
     {
         var width = Math.Max(1, e.NewSize.Width);
         var height = Math.Max(1, e.NewSize.Height);
-        _width = (float)width;
-        _height = (float)height;
+        ApplyLayout((float)width, (float)height);
+    }
+
+    private void ApplyLayout(float width, float height)
+    {
+        _width = width;
+        _height = height;
 
         foreach (var blob in _blobs)
         {
             var visual = blob.Visual;
-            var blobWidth = (float)width * blob.WidthRatio;
-            var blobHeight = (float)height * blob.HeightRatio;
+            var shapeVariation = 0.72f + _variation * 0.28f;
+            var blobWidth = (float)width * blob.WidthRatio * shapeVariation;
+            var blobHeight = (float)height * blob.HeightRatio * (1.22f - _variation * 0.22f);
             visual.Size = new Vector2(blobWidth, blobHeight);
 
             blob.Geometry.Center = new Vector2(blobWidth / 2, blobHeight / 2);
             blob.Geometry.Radius = new Vector2(blobWidth / 2, blobHeight / 2);
 
-            var start = new Vector3((float)width * blob.XRatio - blobWidth / 2, (float)height * blob.YRatio - blobHeight / 2, 0);
-            var travel = new Vector3((float)width * 0.10f, (float)height * 0.07f, 0);
+            var phase = (blob.XRatio * 13.7f + blob.YRatio * 7.3f) * (_variation - 1);
+            var start = new Vector3((float)width * blob.XRatio - blobWidth / 2 + MathF.Sin(phase) * width * 0.055f,
+                (float)height * blob.YRatio - blobHeight / 2 + MathF.Cos(phase) * height * 0.045f, 0);
+            var travel = new Vector3((float)width * (0.04f + _variation * 0.07f), (float)height * (0.025f + _variation * 0.055f), 0);
             var animation = _compositor.CreateVector3KeyFrameAnimation();
-            animation.Duration = TimeSpan.FromSeconds(blob.Seconds);
+            animation.Duration = TimeSpan.FromSeconds(blob.Seconds / _variation);
             animation.IterationBehavior = AnimationIterationBehavior.Forever;
             animation.InsertKeyFrame(0, start);
             animation.InsertKeyFrame(0.5f, start + travel);
@@ -172,7 +203,7 @@ internal sealed class LavaCompositionController : IDisposable
             visual.StartAnimation(nameof(visual.Offset), animation);
 
             var pulse = _compositor.CreateScalarKeyFrameAnimation();
-            pulse.Duration = TimeSpan.FromSeconds(blob.Seconds * 0.43f);
+            pulse.Duration = TimeSpan.FromSeconds(blob.Seconds * 0.43f / _variation);
             pulse.IterationBehavior = AnimationIterationBehavior.Forever;
             pulse.InsertKeyFrame(0, 0.48f);
             pulse.InsertKeyFrame(0.5f, 0.86f);
@@ -186,9 +217,9 @@ internal sealed class LavaCompositionController : IDisposable
     private void RebuildCrack(CrackLayer crack, float width, float height)
     {
         while (crack.Visual.Shapes.Count > 0) crack.Visual.Shapes.RemoveAt(0);
-        var glowBrush = _compositor.CreateColorBrush(Color.FromArgb(135, 72, 78, 255));
-        var crustBrush = _compositor.CreateColorBrush(Color.FromArgb(230, 21, 10, 67));
-        var coreBrush = _compositor.CreateColorBrush(Color.FromArgb(250, 211, 235, 255));
+        var glowBrush = _compositor.CreateColorBrush(FromHue(135, 0.72f, 1f));
+        var crustBrush = _compositor.CreateColorBrush(FromHue(230, 0.85f, 0.26f));
+        var coreBrush = _compositor.CreateColorBrush(FromHue(250, 0.30f, 1f));
         var segmentCount = Math.Max(1, (int)Math.Ceiling((crack.Points.Length - 1) * (0.3f + 0.7f * _crackAmount)));
         for (var index = 1; index <= segmentCount; index++)
         {
@@ -219,6 +250,20 @@ internal sealed class LavaCompositionController : IDisposable
         shape.StrokeBrush = brush;
         shape.StrokeThickness = thickness;
         visual.Shapes.Add(shape);
+    }
+
+    private Color FromHue(byte alpha, float saturation, float value)
+    {
+        var hue = _crackHue / 60f;
+        var chroma = value * saturation;
+        var x = chroma * (1 - MathF.Abs(hue % 2 - 1));
+        var (r, g, b) = hue switch
+        {
+            < 1 => (chroma, x, 0f), < 2 => (x, chroma, 0f), < 3 => (0f, chroma, x),
+            < 4 => (0f, x, chroma), < 5 => (x, 0f, chroma), _ => (chroma, 0f, x)
+        };
+        var m = value - chroma;
+        return Color.FromArgb(alpha, (byte)((r + m) * 255), (byte)((g + m) * 255), (byte)((b + m) * 255));
     }
 
     public void Dispose()

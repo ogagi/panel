@@ -24,6 +24,7 @@ public sealed class CodexTelemetryProvider(string? sessionRoot = null) : ITeleme
             .OrderByDescending(file => file.LastWriteTimeUtc)
             .Take(MaxFiles);
 
+        CodexSnapshot? latest = null;
         foreach (var file in files)
         {
             var tail = await ReadTailAsync(file.FullName, MaxTailBytes, cancellationToken).ConfigureAwait(false);
@@ -31,10 +32,14 @@ public sealed class CodexTelemetryProvider(string? sessionRoot = null) : ITeleme
             for (var index = lines.Length - 1; index >= 0; index--)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (TryParseEvent(lines[index].TrimEnd('\r'), _sessionRoot, out var snapshot))
-                    return snapshot!;
+                if (TryParseEvent(lines[index].TrimEnd('\r'), _sessionRoot, out var snapshot) &&
+                    (latest is null || snapshot!.ObservedAt > latest.ObservedAt))
+                    latest = snapshot;
             }
         }
+
+        if (latest is not null)
+            return latest;
 
         throw new InvalidDataException("No Codex token telemetry has been recorded yet.");
     }
@@ -57,7 +62,7 @@ public sealed class CodexTelemetryProvider(string? sessionRoot = null) : ITeleme
 
             payload.TryGetProperty("info", out var info);
             payload.TryGetProperty("rate_limits", out var limits);
-            limits.TryGetProperty("primary", out var primary);
+            var primary = SelectActiveLimit(limits);
 
             DateTimeOffset? resetAt = null;
             if (TryGetInt64(primary, "resets_at", out var resetSeconds))
@@ -116,4 +121,30 @@ public sealed class CodexTelemetryProvider(string? sessionRoot = null) : ITeleme
     private static long GetNestedInt64(JsonElement element, string objectName, string valueName) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(objectName, out var nested)
             ? GetInt64(nested, valueName) : 0;
+
+    // The CLI has used both a named "primary" limit and a list of limits over time.
+    // Prefer the shortest active window, matching the 5-hour allowance shown by Codex clients.
+    private static JsonElement SelectActiveLimit(JsonElement limits)
+    {
+        if (limits.ValueKind != JsonValueKind.Object)
+            return default;
+        if (limits.TryGetProperty("primary", out var primary) && primary.ValueKind == JsonValueKind.Object)
+            return primary;
+
+        JsonElement selected = default;
+        var selectedMinutes = int.MaxValue;
+        foreach (var property in limits.EnumerateObject())
+        {
+            var candidate = property.Value;
+            if (candidate.ValueKind != JsonValueKind.Object || !TryGetInt64(candidate, "resets_at", out _))
+                continue;
+            var windowMinutes = GetInt32(candidate, "window_minutes");
+            if (windowMinutes > 0 && windowMinutes < selectedMinutes)
+            {
+                selected = candidate;
+                selectedMinutes = windowMinutes;
+            }
+        }
+        return selected;
+    }
 }

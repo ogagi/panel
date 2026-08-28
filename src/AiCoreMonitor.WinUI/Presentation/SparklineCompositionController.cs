@@ -12,6 +12,7 @@ internal sealed class SparklineCompositionController : IDisposable
     private readonly Compositor _compositor;
     private readonly ShapeVisual _visual;
     private double[] _values = [];
+    private bool _isEnabled = true;
 
     public SparklineCompositionController(FrameworkElement host)
     {
@@ -29,12 +30,24 @@ internal sealed class SparklineCompositionController : IDisposable
         Rebuild();
     }
 
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set
+        {
+            if (_isEnabled == value) return;
+            _isEnabled = value;
+            _visual.IsVisible = value;
+            if (value) Rebuild();
+        }
+    }
+
     private void Host_SizeChanged(object sender, SizeChangedEventArgs e) => Rebuild();
 
     private void Rebuild()
     {
         while (_visual.Shapes.Count > 0) _visual.Shapes.RemoveAt(0);
-        if (_values.Length < 2 || _host.ActualWidth <= 0 || _host.ActualHeight <= 0) return;
+        if (!_isEnabled || _values.Length < 2 || _host.ActualWidth <= 0 || _host.ActualHeight <= 0) return;
 
         var brush = _compositor.CreateColorBrush(Color.FromArgb(125, 39, 216, 255));
         var width = (float)_host.ActualWidth;

@@ -11,6 +11,7 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     private readonly Queue<double> _gpuHistory = new();
     private ProviderResult<CodexSnapshot>? _codex;
     private ProviderResult<GpuSnapshot>? _gpu;
+    private ProviderResult<CpuSnapshot>? _cpu;
     private ProviderResult<OllamaSnapshot>? _ollama;
     private bool _isRefreshing;
     private double[] _gpuSamples = [];
@@ -31,6 +32,10 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     public string GpuThermals => _gpu?.Value is { } value ? $"{value.TemperatureC:N0} C   /   {value.PowerWatts:N0} W" : "-- C   /   -- W";
     public double[] GpuSamples { get => _gpuSamples; private set => Set(ref _gpuSamples, value); }
 
+    public string CpuUsage => _cpu?.Value is { } value ? $"{value.UtilizationPercent:N0}%" : "--%";
+    public double CpuUsagePercent => Math.Clamp(_cpu?.Value?.UtilizationPercent ?? 0, 0, 100);
+    public string CpuDetails => _cpu?.Value is { } value ? $"{value.LogicalProcessorCount} LOGICAL CORES" : "CPU UNAVAILABLE";
+
     public string ModelCount => _ollama?.Value is { } value ? value.InstalledCount.ToString(CultureInfo.InvariantCulture) : "--";
     public string ModelCountLabel => _ollama?.Value is { InstalledCount: 1 } ? "MODEL INSTALLED" : "MODELS INSTALLED";
     public string OllamaState => _ollama?.Value is { LoadedCount: > 0 } ? "INFERENCE ACTIVE" : _ollama?.IsAvailable == true ? "OLLAMA ONLINE" : "OLLAMA OFFLINE";
@@ -38,14 +43,14 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     public string ActiveModelShort => ShortModelName(ActiveModel);
     public string ModelStorage => _ollama?.Value is { } value ? $"{value.TotalBytes / 1_073_741_824d:N1} GB ON DISK   /   {value.LoadedCount} LOADED" : "NO LOCAL DATA";
 
-    public int AvailableProviders => (_codex?.IsAvailable == true ? 1 : 0) + (_gpu?.IsAvailable == true ? 1 : 0) + (_ollama?.IsAvailable == true ? 1 : 0);
-    public string SystemState => AvailableProviders switch { 3 => "ALL SYSTEMS NOMINAL", > 0 => $"{AvailableProviders}/3 PROVIDERS ONLINE", _ => "PROVIDERS OFFLINE" };
-    public string StatusColor => AvailableProviders switch { 3 => "#35F2B4", > 0 => "#FFC857", _ => "#FF5A7A" };
+    public int AvailableProviders => (_codex?.IsAvailable == true ? 1 : 0) + (_gpu?.IsAvailable == true ? 1 : 0) + (_cpu?.IsAvailable == true ? 1 : 0) + (_ollama?.IsAvailable == true ? 1 : 0);
+    public string SystemState => AvailableProviders switch { 4 => "ALL SYSTEMS NOMINAL", > 0 => $"{AvailableProviders}/4 PROVIDERS ONLINE", _ => "PROVIDERS OFFLINE" };
+    public string StatusColor => AvailableProviders switch { 4 => "#35F2B4", > 0 => "#FFC857", _ => "#FF5A7A" };
     public string ErrorSummary
     {
         get
         {
-            var errors = new[] { Prefix("Codex", _codex?.Error), Prefix("GPU", _gpu?.Error), Prefix("Ollama", _ollama?.Error) }.Where(value => value is not null);
+            var errors = new[] { Prefix("Codex", _codex?.Error), Prefix("GPU", _gpu?.Error), Prefix("CPU", _cpu?.Error), Prefix("Ollama", _ollama?.Error) }.Where(value => value is not null);
             return string.Join("  /  ", errors!);
         }
     }
@@ -58,6 +63,7 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
         try
         {
             var gpuTask = telemetry.CollectGpuAsync(cancellationToken);
+            var cpuTask = telemetry.CollectCpuAsync(cancellationToken);
             if (includeSlowProviders)
             {
                 var codexTask = telemetry.CollectCodexAsync(cancellationToken);
@@ -67,6 +73,7 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
                 _ollama = await ollamaTask;
             }
             _gpu = await gpuTask;
+            _cpu = await cpuTask;
             if (_gpu.Value is { } gpu)
             {
                 _gpuHistory.Enqueue(gpu.UtilizationPercent);
@@ -86,6 +93,7 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     {
         foreach (var property in new[] { nameof(CodexRemaining), nameof(CodexUsedPercent), nameof(CodexPlan), nameof(CodexReset), nameof(CodexTokens),
                      nameof(GpuName), nameof(GpuUsage), nameof(GpuUsagePercent), nameof(GpuMemory), nameof(GpuThermals),
+                     nameof(CpuUsage), nameof(CpuUsagePercent), nameof(CpuDetails),
                      nameof(ModelCount), nameof(ModelCountLabel), nameof(OllamaState), nameof(ActiveModel), nameof(ActiveModelShort), nameof(ModelStorage),
                      nameof(AvailableProviders), nameof(SystemState), nameof(StatusColor), nameof(ErrorSummary) })
             OnPropertyChanged(property);

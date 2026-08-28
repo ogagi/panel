@@ -17,26 +17,23 @@ public sealed partial class MainWindow : Window
     private readonly WidgetSettings _settings;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly DispatcherTimer _refreshTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+    private readonly DispatcherTimer _settingsSaveTimer = new() { Interval = TimeSpan.FromMilliseconds(750) };
     private readonly LavaCompositionController _lava;
     private readonly SparklineCompositionController _sparkline;
     private readonly GlassBackdropController _glass;
     private LavaOverlayWindow? _overlay;
+    private TrayIconController? _trayIcon;
     private AppWindow? _appWindow;
+    private nint _windowHandle;
     private double _rasterizationScale = 1;
     private int _tick;
     private bool _closing;
     private bool _correctingSize;
-    private bool _updatingEffectControls;
 
     public MainWindow()
     {
         InitializeComponent();
         _settings = _settingsStore.Load();
-        if (_settings.Width == 460 && _settings.Height == 560)
-        {
-            _settings.Width = 340;
-            _settings.Height = 440;
-        }
         Root.DataContext = _viewModel;
         _glass = new GlassBackdropController(this);
         var lavaEnabled = _settings.LavaEnabled ?? _settings.AnimationEnabled;
@@ -45,22 +42,23 @@ public sealed partial class MainWindow : Window
         _settings.CracksEnabled = cracksEnabled;
         _settings.LavaAmount = Math.Clamp(_settings.LavaAmount ?? _settings.EffectIntensity, 0.1, 1);
         _settings.CrackAmount = Math.Clamp(_settings.CrackAmount ?? _settings.EffectIntensity, 0.1, 1);
+        _settings.LavaHue ??= 275;
+        _settings.CrackHue ??= Math.Clamp(_settings.EffectHue, 0, 360);
         _lava = new LavaCompositionController(LavaHost)
         {
             IsEnabled = lavaEnabled || cracksEnabled,
             LavaEnabled = lavaEnabled,
             CracksEnabled = cracksEnabled,
             LavaAmount = (float)_settings.LavaAmount.Value,
-            CrackAmount = (float)_settings.CrackAmount.Value
+            CrackAmount = (float)_settings.CrackAmount.Value,
+            CrackHue = (float)_settings.CrackHue.Value,
+            Variation = (float)Math.Clamp(_settings.EffectVariation, 0.25, 2)
         };
         _sparkline = new SparklineCompositionController(GpuSparklineHost);
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         UpdateEffectControls();
-        LavaToggle.Toggled += LavaToggle_Toggled;
-        CracksToggle.Toggled += CracksToggle_Toggled;
-        LavaAmountSlider.ValueChanged += LavaAmountSlider_ValueChanged;
-        CrackAmountSlider.ValueChanged += CrackAmountSlider_ValueChanged;
         _refreshTimer.Tick += RefreshTimer_Tick;
+        _settingsSaveTimer.Tick += SettingsSaveTimer_Tick;
         Root.Loaded += Root_Loaded;
         Closed += MainWindow_Closed;
     }
@@ -69,8 +67,8 @@ public sealed partial class MainWindow : Window
     {
         if (_appWindow is not null) return;
 
-        var windowHandle = WindowNative.GetWindowHandle(this);
-        var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(windowHandle);
+        _windowHandle = WindowNative.GetWindowHandle(this);
+        var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_windowHandle);
         _appWindow = AppWindow.GetFromWindowId(windowId);
         _appWindow.Title = "AI Core Monitor";
         _rasterizationScale = Math.Max(1, Root.XamlRoot?.RasterizationScale ?? 1);
@@ -88,19 +86,23 @@ public sealed partial class MainWindow : Window
             presenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: false);
             presenter.IsAlwaysOnTop = _settings.Topmost;
             presenter.IsMaximizable = false;
-            presenter.IsMinimizable = true;
+            presenter.IsMinimizable = false;
         }
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(DragRegion);
         HeaderActions.Margin = new Thickness(0, 0, 2, 0);
-        WindowEffects.Apply(windowHandle);
+        WindowEffects.Apply(_windowHandle);
+        WindowEffects.DisableMaximize(_windowHandle);
+        _trayIcon = new TrayIconController(RestoreFromTray);
         _appWindow.Closing += AppWindow_Closing;
         _appWindow.Changed += AppWindow_Changed;
         _overlay = new LavaOverlayWindow
         {
             IsEnabled = _settings.LavaEnabled == true,
-            Amount = (float)_settings.LavaAmount.GetValueOrDefault(0.78)
+            Amount = (float)_settings.LavaAmount.GetValueOrDefault(0.78),
+            LavaHue = (float)_settings.LavaHue.GetValueOrDefault(275),
+            Variation = (float)_settings.EffectVariation
         };
         SynchronizeOverlay();
 
@@ -149,7 +151,23 @@ public sealed partial class MainWindow : Window
                 _correctingSize = false;
             }
         }
+
+        if (args.DidPositionChange || args.DidSizeChange)
+            ScheduleSettingsSave();
+
         SynchronizeOverlay();
+    }
+
+    private void ScheduleSettingsSave()
+    {
+        _settingsSaveTimer.Stop();
+        _settingsSaveTimer.Start();
+    }
+
+    private void SettingsSaveTimer_Tick(object? sender, object e)
+    {
+        _settingsSaveTimer.Stop();
+        SaveWindowGeometry();
     }
 
     private void SynchronizeOverlay()
@@ -162,7 +180,7 @@ public sealed partial class MainWindow : Window
         var topmost = _appWindow.Presenter is OverlappedPresenter { IsAlwaysOnTop: true };
         var minimized = _appWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized };
         _overlay.IsEnabled = _settings.LavaEnabled == true && !minimized;
-        _overlay.UpdateBounds(_appWindow.Position.X, overlayTop, _appWindow.Size.Width, overlayHeight,
+        _overlay.UpdateBounds(_windowHandle, _appWindow.Position.X, overlayTop, _appWindow.Size.Width, overlayHeight,
             _appWindow.Size.Height, topmost);
     }
 
@@ -189,35 +207,58 @@ public sealed partial class MainWindow : Window
             _sparkline.SetValues(_viewModel.GpuSamples);
     }
 
-    private void EffectsFlyout_Opened(object sender, object e) => UpdateEffectControls();
+    private void SettingsFlyout_Opened(object sender, object e) => UpdateEffectControls();
 
-    private void LavaToggle_Toggled(object sender, RoutedEventArgs e)
+    private void LavaButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_updatingEffectControls) return;
-        _settings.LavaEnabled = LavaToggle.IsOn;
+        _settings.LavaEnabled = _settings.LavaEnabled != true;
         ApplyEffectSettings();
+        UpdateEffectControls();
+        ScheduleSettingsSave();
     }
 
-    private void CracksToggle_Toggled(object sender, RoutedEventArgs e)
+    private void CracksButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_updatingEffectControls) return;
-        _settings.CracksEnabled = CracksToggle.IsOn;
+        _settings.CracksEnabled = _settings.CracksEnabled != true;
         ApplyEffectSettings();
+        UpdateEffectControls();
+        ScheduleSettingsSave();
     }
 
-    private void LavaAmountSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    private void TopmostButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_updatingEffectControls) return;
-        _settings.LavaAmount = e.NewValue / 100;
-        ApplyEffectSettings();
+        _settings.Topmost = !_settings.Topmost;
+        if (_appWindow?.Presenter is OverlappedPresenter presenter)
+            presenter.IsAlwaysOnTop = _settings.Topmost;
+        SynchronizeOverlay();
+        UpdateEffectControls();
+        ScheduleSettingsSave();
     }
 
-    private void CrackAmountSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    private void GpuVisualsButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_updatingEffectControls) return;
-        _settings.CrackAmount = e.NewValue / 100;
-        ApplyEffectSettings();
+        _settings.GpuVisualsEnabled = !_settings.GpuVisualsEnabled;
+        ApplyGpuVisualsSetting();
+        UpdateEffectControls();
+        ScheduleSettingsSave();
     }
+
+    private void LavaAmountDown_Click(object sender, RoutedEventArgs e) => ChangeLavaAmount(-0.1);
+    private void LavaAmountUp_Click(object sender, RoutedEventArgs e) => ChangeLavaAmount(0.1);
+    private void CrackAmountDown_Click(object sender, RoutedEventArgs e) => ChangeCrackAmount(-0.1);
+    private void CrackAmountUp_Click(object sender, RoutedEventArgs e) => ChangeCrackAmount(0.1);
+    private void LavaHueDown_Click(object sender, RoutedEventArgs e) => ChangeLavaHue(-15);
+    private void LavaHueUp_Click(object sender, RoutedEventArgs e) => ChangeLavaHue(15);
+    private void CrackHueDown_Click(object sender, RoutedEventArgs e) => ChangeCrackHue(-15);
+    private void CrackHueUp_Click(object sender, RoutedEventArgs e) => ChangeCrackHue(15);
+    private void VariationDown_Click(object sender, RoutedEventArgs e) => ChangeVariation(-0.25);
+    private void VariationUp_Click(object sender, RoutedEventArgs e) => ChangeVariation(0.25);
+
+    private void ChangeLavaAmount(double delta) { _settings.LavaAmount = Math.Clamp(_settings.LavaAmount!.Value + delta, 0.1, 1); ApplyEffectSettings(); UpdateEffectControls(); ScheduleSettingsSave(); }
+    private void ChangeCrackAmount(double delta) { _settings.CrackAmount = Math.Clamp(_settings.CrackAmount!.Value + delta, 0.1, 1); ApplyEffectSettings(); UpdateEffectControls(); ScheduleSettingsSave(); }
+    private void ChangeLavaHue(double delta) { _settings.LavaHue = (_settings.LavaHue!.Value + delta + 360) % 360; if (_overlay is not null) _overlay.LavaHue = (float)_settings.LavaHue.Value; ScheduleSettingsSave(); }
+    private void ChangeCrackHue(double delta) { _settings.CrackHue = (_settings.CrackHue!.Value + delta + 360) % 360; _lava.CrackHue = (float)_settings.CrackHue.Value; ScheduleSettingsSave(); }
+    private void ChangeVariation(double delta) { _settings.EffectVariation = Math.Clamp(_settings.EffectVariation + delta, 0.25, 2); _lava.Variation = (float)_settings.EffectVariation; if (_overlay is not null) _overlay.Variation = (float)_settings.EffectVariation; ScheduleSettingsSave(); }
 
     private void EnableEffects()
     {
@@ -226,6 +267,7 @@ public sealed partial class MainWindow : Window
         _settings.CracksEnabled = true;
         ApplyEffectSettings();
         UpdateEffectControls();
+        ScheduleSettingsSave();
     }
 
     private void ApplyEffectSettings()
@@ -233,7 +275,7 @@ public sealed partial class MainWindow : Window
         var lavaEnabled = _settings.LavaEnabled == true;
         var cracksEnabled = _settings.CracksEnabled == true;
         _settings.AnimationEnabled = lavaEnabled || cracksEnabled;
-        _lava.IsEnabled = _settings.AnimationEnabled;
+        _lava.IsEnabled = _settings.AnimationEnabled && _settings.GpuVisualsEnabled;
         _lava.LavaEnabled = lavaEnabled;
         _lava.CracksEnabled = cracksEnabled;
         _lava.LavaAmount = (float)_settings.LavaAmount!.Value;
@@ -241,25 +283,43 @@ public sealed partial class MainWindow : Window
         if (_overlay is not null)
         {
             _overlay.Amount = (float)_settings.LavaAmount.Value;
+            _overlay.LavaHue = (float)_settings.LavaHue!.Value;
+            _overlay.Variation = (float)_settings.EffectVariation;
             _overlay.IsEnabled = lavaEnabled;
         }
-        AnimationButton.Opacity = _settings.AnimationEnabled ? 1 : 0.45;
+        SettingsButton.Opacity = _settings.AnimationEnabled ? 1 : 0.65;
+    }
+
+    private void ApplyGpuVisualsSetting()
+    {
+        _lava.IsEnabled = _settings.AnimationEnabled && _settings.GpuVisualsEnabled;
+        _sparkline.IsEnabled = _settings.GpuVisualsEnabled;
     }
 
     private void UpdateEffectControls()
     {
-        _updatingEffectControls = true;
-        LavaToggle.IsOn = _settings.LavaEnabled == true;
-        CracksToggle.IsOn = _settings.CracksEnabled == true;
-        LavaAmountSlider.Value = _settings.LavaAmount!.Value * 100;
-        CrackAmountSlider.Value = _settings.CrackAmount!.Value * 100;
-        AnimationButton.Opacity = (_settings.LavaEnabled == true || _settings.CracksEnabled == true) ? 1 : 0.45;
-        _updatingEffectControls = false;
+        TopmostButton.Content = _settings.Topmost ? "ON" : "OFF";
+        GpuVisualsButton.Content = _settings.GpuVisualsEnabled ? "ON" : "OFF";
+        LavaButton.Content = _settings.LavaEnabled == true ? "ON" : "OFF";
+        CracksButton.Content = _settings.CracksEnabled == true ? "ON" : "OFF";
+        LavaAmountText.Text = $"{_settings.LavaAmount!.Value * 100:N0}";
+        CrackAmountText.Text = $"{_settings.CrackAmount!.Value * 100:N0}";
+        SettingsButton.Opacity = (_settings.LavaEnabled == true || _settings.CracksEnabled == true) ? 1 : 0.65;
+        ApplyGpuVisualsSetting();
     }
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_appWindow?.Presenter is OverlappedPresenter presenter) presenter.Minimize();
+        if (_overlay is not null) _overlay.IsEnabled = false;
+        WindowEffects.Hide(_windowHandle);
+    }
+
+    private void RestoreFromTray()
+    {
+        if (_closing) return;
+        WindowEffects.Show(_windowHandle);
+        Activate();
+        SynchronizeOverlay();
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
@@ -270,7 +330,21 @@ public sealed partial class MainWindow : Window
     {
         if (!_closing) return;
         _refreshTimer.Stop();
+        _settingsSaveTimer.Stop();
         _lifetime.Cancel();
+        SaveWindowGeometry();
+        _overlay?.Dispose();
+        _trayIcon?.Dispose();
+        _glass.Dispose();
+        _lava.Dispose();
+        _sparkline.Dispose();
+        _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+        _viewModel.Dispose();
+        _lifetime.Dispose();
+    }
+
+    private void SaveWindowGeometry()
+    {
         if (_appWindow is not null)
         {
             _settings.Width = PhysicalToLogical(_appWindow.Size.Width);
@@ -280,13 +354,7 @@ public sealed partial class MainWindow : Window
             if (_appWindow.Presenter is OverlappedPresenter presenter)
                 _settings.Topmost = presenter.IsAlwaysOnTop;
         }
+
         try { _settingsStore.Save(_settings); } catch (IOException) { }
-        _overlay?.Dispose();
-        _glass.Dispose();
-        _lava.Dispose();
-        _sparkline.Dispose();
-        _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
-        _viewModel.Dispose();
-        _lifetime.Dispose();
     }
 }

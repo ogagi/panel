@@ -14,13 +14,15 @@ Providers are isolated and independently timed out. An unavailable GPU or Ollama
 
 Double-click `RunWidget.cmd`. It selects the published native executable first and falls back to running the WinUI project from source when necessary.
 
-Current published executable:
+The launcher creates a current self-contained Release publish, signs the application binaries with a per-user development certificate when needed, and runs:
 
 ```text
-artifacts\publish\winui-fx-menu\AiCoreMonitor.exe
+artifacts\publish\winui-current\AiCoreMonitor.exe
 ```
 
 The publish is a self-contained Windows x64 folder and does not require a separately installed .NET or Windows App SDK runtime on the target machine. Folder deployment is intentional: WinUI single-file extraction materially delays widget startup.
+
+On first launch, `SignBuild.ps1` creates a non-exportable code-signing certificate for the current Windows user and adds its public certificate to that user's Root and Trusted Publisher stores. Subsequent launches reuse it and sign only application binaries whose signature is missing or invalid. This is intended for local development; distributing the application to other machines should use an organization-approved/public code-signing certificate or a properly signed MSIX package.
 
 ## Controls
 

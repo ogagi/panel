@@ -39,6 +39,23 @@ public sealed class TelemetryProviderTests
     }
 
     [TestMethod]
+    public async Task CodexProvider_UsesNewestEventAcrossActiveSessions()
+    {
+        const string older = """
+            {"timestamp":"2026-08-16T12:00:00+00:00","type":"event_msg","payload":{"type":"token_count","info":{},"rate_limits":{"plan_type":"plus","primary":{"window_minutes":300,"used_percent":70,"resets_at":1786900000}}}}
+            """;
+        const string newer = """
+            {"timestamp":"2026-08-16T12:01:00+00:00","type":"event_msg","payload":{"type":"token_count","info":{},"rate_limits":{"plan_type":"plus","primary":{"window_minutes":300,"used_percent":5,"resets_at":1786900000}}}}
+            """;
+        await File.WriteAllTextAsync(Path.Combine(_temporaryRoot!, "older.jsonl"), older);
+        await File.WriteAllTextAsync(Path.Combine(_temporaryRoot!, "newer.jsonl"), newer);
+
+        var snapshot = await new CodexTelemetryProvider(_temporaryRoot).CollectAsync(CancellationToken.None);
+
+        Assert.AreEqual(5d, snapshot.UsedPercent);
+    }
+
+    [TestMethod]
     public void NvidiaParser_UsesInvariantCsvMetrics()
     {
         var snapshot = NvidiaGpuTelemetryProvider.Parse("NVIDIA GeForce RTX 5060 Ti, 73, 8123, 16311, 61, 145.25");
@@ -47,6 +64,16 @@ public sealed class TelemetryProviderTests
         Assert.AreEqual(73, snapshot.UtilizationPercent);
         Assert.AreEqual(16_311, snapshot.MemoryTotalMiB);
         Assert.AreEqual(145.25, snapshot.PowerWatts);
+    }
+
+    [TestMethod]
+    public void CpuUtilization_ExcludesIdleKernelTime()
+    {
+        var utilization = CpuTelemetryProvider.CalculateUtilization(
+            new CpuTelemetryProvider.SystemTimes(100, 200, 300),
+            new CpuTelemetryProvider.SystemTimes(130, 260, 360));
+
+        Assert.AreEqual(75d, utilization);
     }
 
     [TestMethod]

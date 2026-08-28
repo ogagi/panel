@@ -9,12 +9,14 @@ public sealed class TelemetryService : IDisposable
     private readonly HttpClient _httpClient = new() { BaseAddress = new Uri("http://127.0.0.1:11434/"), Timeout = TimeSpan.FromSeconds(3) };
     private readonly ITelemetryProvider<CodexSnapshot> _codex;
     private readonly ITelemetryProvider<GpuSnapshot> _gpu;
+    private readonly ITelemetryProvider<CpuSnapshot> _cpu;
     private readonly ITelemetryProvider<OllamaSnapshot> _ollama;
 
     public TelemetryService(string? codexSessionRoot = null)
     {
         _codex = new CodexTelemetryProvider(codexSessionRoot);
         _gpu = new NvidiaGpuTelemetryProvider();
+        _cpu = new CpuTelemetryProvider();
         _ollama = new OllamaTelemetryProvider(_httpClient);
     }
 
@@ -23,6 +25,9 @@ public sealed class TelemetryService : IDisposable
 
     public Task<ProviderResult<GpuSnapshot>> CollectGpuAsync(CancellationToken cancellationToken) =>
         CollectAsync(_gpu, TimeSpan.FromSeconds(2), cancellationToken);
+
+    public Task<ProviderResult<CpuSnapshot>> CollectCpuAsync(CancellationToken cancellationToken) =>
+        CollectAsync(_cpu, TimeSpan.FromSeconds(1), cancellationToken);
 
     public Task<ProviderResult<OllamaSnapshot>> CollectOllamaAsync(CancellationToken cancellationToken) =>
         CollectAsync(_ollama, TimeSpan.FromSeconds(3), cancellationToken);
