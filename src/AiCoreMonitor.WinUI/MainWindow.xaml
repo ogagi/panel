@@ -85,7 +85,34 @@
 
     <Grid x:Name="LavaHost" IsHitTestVisible="False" />
 
-    <Border Margin="1" CornerRadius="20" Background="#3105070B" BorderBrush="#B47D8996" BorderThickness="1">
+    <!-- Compact mode is a purpose-built telemetry strip, not a scaled dashboard. -->
+    <Border x:Name="CompactShell" Margin="1" CornerRadius="14" Background="#D9121923" BorderBrush="#A87D8996" BorderThickness="1" Visibility="Collapsed">
+      <Grid>
+        <Border Margin="2" CornerRadius="12" Background="{StaticResource ChassisGradient}" />
+        <Grid x:Name="CompactTopBar" Margin="12,5" ColumnSpacing="12">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <StackPanel VerticalAlignment="Center"><StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" Margin="0,0,7,0" /><TextBlock x:Name="CompactBrandLabel" Text="AI CORE" Foreground="#DCEAF7" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" /></StackPanel><TextBlock x:Name="TopRefresh" Text="{Binding LastRefreshText}" Foreground="#536E8D" FontSize="8" Margin="0,4,0,0" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="CODEX" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding CodexRemaining}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopCodexPlan" Text="{Binding CodexPlan}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /><TextBlock x:Name="TopCodexReset" Text="{Binding CodexReset}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Column="2" VerticalAlignment="Center"><TextBlock Text="GPU" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopGpuMemory" Text="{Binding GpuMemory}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /><TextBlock x:Name="TopGpuThermals" Text="{Binding GpuThermals}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Column="3" VerticalAlignment="Center"><TextBlock Text="CPU" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopCpuDetails" Text="{Binding CpuDetails}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Column="4" VerticalAlignment="Center"><TextBlock Text="LOCAL MODELS" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding ModelCount}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopModelState" Text="{Binding OllamaState}" Foreground="#49DFB5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /><TextBlock x:Name="TopActiveModel" Text="{Binding ActiveModelShort}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center"><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A7;" ToolTipService.ToolTip="Switch to side bar" Click="CompactOrientationButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A5;" ToolTipService.ToolTip="Expand dashboard" Click="ExpandButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8BB;" Click="CloseButton_Click" /></StackPanel>
+        </Grid>
+        <Grid x:Name="CompactSideBar" Margin="12,10" RowSpacing="8" Visibility="Collapsed">
+          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+          <Grid x:Name="CompactSideHeader"><StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" Margin="0,0,7,0" /><TextBlock x:Name="SideBrandLabel" Text="AI CORE" Foreground="#DCEAF7" FontSize="10" FontWeight="Bold" /></StackPanel><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A7;" ToolTipService.ToolTip="Switch to top bar" Click="CompactOrientationButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A5;" ToolTipService.ToolTip="Expand dashboard" Click="ExpandButton_Click" /></StackPanel></Grid>
+          <StackPanel Grid.Row="1"><TextBlock Text="CODEX ALLOCATION" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding CodexRemaining}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideCodexPlan" Text="{Binding CodexPlan}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SideCodexReset" Text="{Binding CodexReset}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Row="2"><TextBlock Text="GPU COMPUTE" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideGpuMemory" Text="{Binding GpuMemory}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SideGpuThermals" Text="{Binding GpuThermals}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Row="3"><TextBlock Text="CPU COMPUTE" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideCpuDetails" Text="{Binding CpuDetails}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /></StackPanel>
+          <StackPanel Grid.Row="4"><TextBlock Text="LOCAL MODELS" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding ModelCount}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideModelState" Text="{Binding OllamaState}" Foreground="#49DFB5" FontSize="9" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SideActiveModel" Text="{Binding ActiveModelShort}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <TextBlock Grid.Row="5" Text="{Binding LastRefreshText}" Foreground="#536E8D" FontSize="8" HorizontalAlignment="Right" />
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border x:Name="FullShell" Margin="1" CornerRadius="20" Background="#3105070B" BorderBrush="#B47D8996" BorderThickness="1">
       <Grid>
         <Grid.RowDefinitions>
           <RowDefinition Height="54" />
@@ -182,6 +209,7 @@
                 </Flyout>
               </Button.Flyout>
             </Button>
+            <Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE7C3;" FontSize="14" ToolTipService.ToolTip="Compact telemetry bar" Click="CompactButton_Click" />
             <Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE921;" FontSize="12" Click="MinimizeButton_Click" />
             <Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8BB;" FontSize="14" Click="CloseButton_Click" />
           </StackPanel>

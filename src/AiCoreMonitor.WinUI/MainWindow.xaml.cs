@@ -74,9 +74,8 @@ public sealed partial class MainWindow : Window
         _appWindow = AppWindow.GetFromWindowId(windowId);
         _appWindow.Title = "AI Core Monitor";
         _rasterizationScale = Math.Max(1, Root.XamlRoot?.RasterizationScale ?? 1);
-        _appWindow.Resize(new SizeInt32(
-            LogicalToPhysical(Math.Clamp(_settings.Width, 340, 920)),
-            LogicalToPhysical(Math.Clamp(_settings.Height, 440, 1120))));
+        ApplyDisplayMode(resizeWindow: false);
+        _appWindow.Resize(GetDisplaySize());
         if (!double.IsNaN(_settings.Left) && !double.IsNaN(_settings.Top))
             _appWindow.Move(new PointInt32(LogicalToPhysical(_settings.Left), LogicalToPhysical(_settings.Top)));
         else
@@ -92,7 +91,8 @@ public sealed partial class MainWindow : Window
         }
 
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(DragRegion);
+        SetTitleBar(_settings.CompactMode ? (_settings.CompactSideBar ? CompactSideHeader : CompactTopBar) : DragRegion);
+        UpdateCompactDensity(_appWindow.Size);
         HeaderActions.Margin = new Thickness(0, 0, 2, 0);
         WindowEffects.Apply(_windowHandle);
         _appIcon = new AppIcon();
@@ -139,10 +139,10 @@ public sealed partial class MainWindow : Window
     {
         if (!_correctingSize)
         {
-            var minimumWidth = LogicalToPhysical(340);
-            var minimumHeight = LogicalToPhysical(440);
-            var maximumWidth = LogicalToPhysical(920);
-            var maximumHeight = LogicalToPhysical(1120);
+            var minimumWidth = LogicalToPhysical(_settings.CompactMode ? (_settings.CompactSideBar ? 130 : 400) : 340);
+            var minimumHeight = LogicalToPhysical(_settings.CompactMode ? (_settings.CompactSideBar ? 250 : 56) : 440);
+            var maximumWidth = LogicalToPhysical(_settings.CompactMode ? (_settings.CompactSideBar ? 320 : 1000) : 920);
+            var maximumHeight = LogicalToPhysical(_settings.CompactMode ? (_settings.CompactSideBar ? 900 : 160) : 1120);
             var width = Math.Clamp(sender.Size.Width, minimumWidth, maximumWidth);
             var height = Math.Clamp(sender.Size.Height, minimumHeight, maximumHeight);
             if (width != sender.Size.Width || height != sender.Size.Height)
@@ -152,6 +152,9 @@ public sealed partial class MainWindow : Window
                 _correctingSize = false;
             }
         }
+
+        if (args.DidSizeChange)
+            UpdateCompactDensity(sender.Size);
 
         if (args.DidPositionChange || args.DidSizeChange)
             ScheduleSettingsSave();
@@ -299,11 +302,91 @@ public sealed partial class MainWindow : Window
         ApplyGpuVisualsSetting();
     }
 
+    private void CompactButton_Click(object sender, RoutedEventArgs e)
+    {
+        SaveWindowGeometry();
+        _settings.CompactMode = true;
+        ApplyDisplayMode();
+        SaveWindowGeometry();
+    }
+
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
         _hiddenToTray = true;
         SynchronizeOverlay();
         WindowEffects.Hide(_windowHandle);
+    }
+
+    private void ExpandButton_Click(object sender, RoutedEventArgs e)
+    {
+        SaveWindowGeometry();
+        _settings.CompactMode = false;
+        ApplyDisplayMode();
+        SaveWindowGeometry();
+    }
+
+    private void CompactOrientationButton_Click(object sender, RoutedEventArgs e)
+    {
+        SaveWindowGeometry();
+        _settings.CompactSideBar = !_settings.CompactSideBar;
+        ApplyDisplayMode();
+        SaveWindowGeometry();
+    }
+
+    private SizeInt32 GetDisplaySize() => _settings.CompactMode
+        ? new SizeInt32(
+            LogicalToPhysical(_settings.CompactSideBar ? Math.Clamp(_settings.CompactSideWidth, 130, 320) : Math.Clamp(_settings.CompactTopWidth, 400, 1000)),
+            LogicalToPhysical(_settings.CompactSideBar ? Math.Clamp(_settings.CompactSideHeight, 250, 900) : Math.Clamp(_settings.CompactTopHeight, 56, 160)))
+        : new SizeInt32(LogicalToPhysical(Math.Clamp(_settings.Width, 340, 920)), LogicalToPhysical(Math.Clamp(_settings.Height, 440, 1120)));
+
+    private void ApplyDisplayMode(bool resizeWindow = true)
+    {
+        FullShell.Visibility = _settings.CompactMode ? Visibility.Collapsed : Visibility.Visible;
+        CompactShell.Visibility = _settings.CompactMode ? Visibility.Visible : Visibility.Collapsed;
+        CompactTopBar.Visibility = _settings.CompactSideBar ? Visibility.Collapsed : Visibility.Visible;
+        CompactSideBar.Visibility = _settings.CompactSideBar ? Visibility.Visible : Visibility.Collapsed;
+        if (_appWindow is not null && ExtendsContentIntoTitleBar)
+            SetTitleBar(_settings.CompactMode ? (_settings.CompactSideBar ? CompactSideHeader : CompactTopBar) : DragRegion);
+        if (resizeWindow && _appWindow is not null)
+            _appWindow.Resize(GetDisplaySize());
+        if (_appWindow is not null)
+            UpdateCompactDensity(_appWindow.Size);
+        SynchronizeOverlay();
+    }
+
+    private void UpdateCompactDensity(SizeInt32 physicalSize)
+    {
+        if (!_settings.CompactMode) return;
+
+        var width = PhysicalToLogical(physicalSize.Width);
+        var height = PhysicalToLogical(physicalSize.Height);
+        if (_settings.CompactSideBar)
+        {
+            var showDetails = width >= 150 && height >= 310;
+            var showExtended = width >= 190 && height >= 430;
+            SideBrandLabel.Visibility = width >= 175 ? Visibility.Visible : Visibility.Collapsed;
+            SideCodexPlan.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
+            SideGpuMemory.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
+            SideCpuDetails.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
+            SideModelState.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
+            SideCodexReset.Visibility = showExtended ? Visibility.Visible : Visibility.Collapsed;
+            SideGpuThermals.Visibility = showExtended ? Visibility.Visible : Visibility.Collapsed;
+            SideActiveModel.Visibility = showExtended ? Visibility.Visible : Visibility.Collapsed;
+            return;
+        }
+
+        var showTopDetails = width >= 620 && height >= 78;
+        var showTopExtended = width >= 780 && height >= 104;
+        CompactTopBar.ColumnSpacing = width < 540 ? 4 : 12;
+        CompactBrandLabel.Visibility = width >= 560 ? Visibility.Visible : Visibility.Collapsed;
+        TopCodexPlan.Visibility = showTopDetails ? Visibility.Visible : Visibility.Collapsed;
+        TopGpuMemory.Visibility = showTopDetails ? Visibility.Visible : Visibility.Collapsed;
+        TopCpuDetails.Visibility = showTopDetails ? Visibility.Visible : Visibility.Collapsed;
+        TopModelState.Visibility = showTopDetails ? Visibility.Visible : Visibility.Collapsed;
+        TopCodexReset.Visibility = showTopExtended ? Visibility.Visible : Visibility.Collapsed;
+        TopGpuThermals.Visibility = showTopExtended ? Visibility.Visible : Visibility.Collapsed;
+        TopActiveModel.Visibility = showTopExtended ? Visibility.Visible : Visibility.Collapsed;
+        TopRefresh.Visibility = showTopExtended ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void RestoreFromTray()
@@ -341,8 +424,21 @@ public sealed partial class MainWindow : Window
     {
         if (_appWindow is not null)
         {
-            _settings.Width = PhysicalToLogical(_appWindow.Size.Width);
-            _settings.Height = PhysicalToLogical(_appWindow.Size.Height);
+            if (!_settings.CompactMode)
+            {
+                _settings.Width = PhysicalToLogical(_appWindow.Size.Width);
+                _settings.Height = PhysicalToLogical(_appWindow.Size.Height);
+            }
+            else if (_settings.CompactSideBar)
+            {
+                _settings.CompactSideWidth = PhysicalToLogical(_appWindow.Size.Width);
+                _settings.CompactSideHeight = PhysicalToLogical(_appWindow.Size.Height);
+            }
+            else
+            {
+                _settings.CompactTopWidth = PhysicalToLogical(_appWindow.Size.Width);
+                _settings.CompactTopHeight = PhysicalToLogical(_appWindow.Size.Height);
+            }
             _settings.Left = PhysicalToLogical(_appWindow.Position.X);
             _settings.Top = PhysicalToLogical(_appWindow.Position.Y);
             if (_appWindow.Presenter is OverlappedPresenter presenter)
