@@ -79,6 +79,15 @@ public sealed class TelemetryProviderTests
     }
 
     [TestMethod]
+    public async Task CpuProvider_ReportsPhysicalMemoryUsage()
+    {
+        var snapshot = await new CpuTelemetryProvider().CollectAsync(CancellationToken.None);
+
+        Assert.IsGreaterThan(0UL, snapshot.MemoryTotalBytes);
+        Assert.IsLessThanOrEqualTo(snapshot.MemoryTotalBytes, snapshot.MemoryUsedBytes);
+    }
+
+    [TestMethod]
     [DataRow(999L, "999")]
     [DataRow(1_250L, "1.3K")]
     [DataRow(2_500_000L, "2.5M")]

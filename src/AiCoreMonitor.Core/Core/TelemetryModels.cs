@@ -8,7 +8,8 @@ public sealed record CodexSnapshot(DateTimeOffset ObservedAt, string Plan, int W
 public sealed record GpuSnapshot(DateTimeOffset ObservedAt, string Name, double UtilizationPercent,
     double MemoryUsedMiB, double MemoryTotalMiB, double TemperatureC, double PowerWatts);
 
-public sealed record CpuSnapshot(DateTimeOffset ObservedAt, int LogicalProcessorCount, double UtilizationPercent);
+public sealed record CpuSnapshot(DateTimeOffset ObservedAt, int LogicalProcessorCount, double UtilizationPercent,
+    ulong MemoryUsedBytes, ulong MemoryTotalBytes);
 
 public sealed record OllamaSnapshot(DateTimeOffset ObservedAt, int InstalledCount, int LoadedCount,
     long TotalBytes, string? ActiveModel, IReadOnlyList<LocalModel> Models);

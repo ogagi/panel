@@ -22,6 +22,7 @@ public sealed class WidgetSettings
     public double? LavaAmount { get; set; } = 0.40;
     public double? CrackAmount { get; set; } = 0.46;
     public bool Topmost { get; set; } = true;
+    public string[] SectionOrder { get; set; } = ["codex", "system", "models"];
     // WinUI itself is composed by Windows. This controls the panel-owned Composition visuals.
     public bool GpuVisualsEnabled { get; set; } = true;
     // EffectHue is retained to migrate settings saved before the colors were independent.

@@ -15,6 +15,9 @@ public sealed class CpuTelemetryProvider : ITelemetryProvider<CpuSnapshot>
         cancellationToken.ThrowIfCancellationRequested();
         if (!GetSystemTimes(out var idle, out var kernel, out var user))
             throw new InvalidOperationException("Could not read system CPU times.");
+        var memory = new MemoryStatus { Length = (uint)Marshal.SizeOf<MemoryStatus>() };
+        if (!GlobalMemoryStatusEx(ref memory))
+            throw new InvalidOperationException("Could not read system memory status.");
 
         var current = new SystemTimes(ToUInt64(idle), ToUInt64(kernel), ToUInt64(user));
         double utilization;
@@ -24,7 +27,9 @@ public sealed class CpuTelemetryProvider : ITelemetryProvider<CpuSnapshot>
             _previous = current;
         }
 
-        return Task.FromResult(new CpuSnapshot(DateTimeOffset.Now, Environment.ProcessorCount, utilization));
+        var usedMemory = memory.TotalPhysical - memory.AvailablePhysical;
+        return Task.FromResult(new CpuSnapshot(DateTimeOffset.Now, Environment.ProcessorCount, utilization,
+            usedMemory, memory.TotalPhysical));
     }
 
     internal static double CalculateUtilization(SystemTimes previous, SystemTimes current)
@@ -42,10 +47,28 @@ public sealed class CpuTelemetryProvider : ITelemetryProvider<CpuSnapshot>
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetSystemTimes(out FileTime idleTime, out FileTime kernelTime, out FileTime userTime);
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GlobalMemoryStatusEx(ref MemoryStatus buffer);
+
     [StructLayout(LayoutKind.Sequential)]
     private struct FileTime
     {
         public uint Low;
         public uint High;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MemoryStatus
+    {
+        public uint Length;
+        public uint MemoryLoad;
+        public ulong TotalPhysical;
+        public ulong AvailablePhysical;
+        public ulong TotalPageFile;
+        public ulong AvailablePageFile;
+        public ulong TotalVirtual;
+        public ulong AvailableVirtual;
+        public ulong AvailableExtendedVirtual;
     }
 }

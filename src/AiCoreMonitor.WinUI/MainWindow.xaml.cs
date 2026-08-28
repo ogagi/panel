@@ -5,6 +5,12 @@ using AiCoreMonitor.WinUI.Interop;
 using AiCoreMonitor.WinUI.Presentation;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
+using System.Numerics;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics;
 using WinRT.Interop;
 
@@ -31,11 +37,14 @@ public sealed partial class MainWindow : Window
     private bool _closing;
     private bool _correctingSize;
     private bool _hiddenToTray;
+    private FrameworkElement? _draggedSection;
+    private int _dropIndex;
 
     public MainWindow()
     {
         InitializeComponent();
         _settings = _settingsStore.Load();
+        ApplySectionOrder();
         Root.DataContext = _viewModel;
         _glass = new GlassBackdropController(this);
         var lavaEnabled = _settings.LavaEnabled ?? _settings.AnimationEnabled;
@@ -209,6 +218,125 @@ public sealed partial class MainWindow : Window
     {
         if (args.PropertyName == nameof(MainViewModel.GpuSamples))
             _sparkline.SetValues(_viewModel.GpuSamples);
+    }
+
+    private FrameworkElement[] Sections => [CodexSection, SystemSection, ModelsSection];
+
+    private void ApplySectionOrder()
+    {
+        var sectionById = Sections.ToDictionary(section => (string)section.Tag, StringComparer.Ordinal);
+        var order = (_settings.SectionOrder ?? []).Where(sectionById.ContainsKey).Distinct(StringComparer.Ordinal).ToList();
+        order.AddRange(sectionById.Keys.Where(id => !order.Contains(id, StringComparer.Ordinal)));
+        _settings.SectionOrder = [.. order];
+        for (var row = 0; row < order.Count; row++)
+            Grid.SetRow(sectionById[order[row]], row);
+    }
+
+    private void Section_DragStarting(UIElement sender, DragStartingEventArgs args)
+    {
+        _draggedSection = (FrameworkElement)sender;
+        _dropIndex = Grid.GetRow(_draggedSection);
+        args.Data.SetText((string)_draggedSection.Tag);
+        args.Data.RequestedOperation = DataPackageOperation.Move;
+        AnimateDragSource(_draggedSection, dragging: true);
+    }
+
+    private void Dashboard_DragOver(object sender, DragEventArgs args)
+    {
+        if (_draggedSection is null) return;
+        args.AcceptedOperation = DataPackageOperation.Move;
+        _dropIndex = GetDropIndex(args.GetPosition(Dashboard).Y);
+        ShowDropIndicator(_dropIndex);
+    }
+
+    private void Dashboard_DragLeave(object sender, DragEventArgs args) => HideDropIndicator();
+
+    private void Dashboard_Drop(object sender, DragEventArgs args)
+    {
+        if (_draggedSection is null) return;
+        args.AcceptedOperation = DataPackageOperation.Move;
+
+        var oldPositions = Sections.ToDictionary(section => section, section => section.TransformToVisual(Dashboard).TransformPoint(default).Y);
+        var ordered = Sections.OrderBy(Grid.GetRow).ToList();
+        var oldIndex = ordered.IndexOf(_draggedSection);
+        ordered.RemoveAt(oldIndex);
+        var insertionIndex = _dropIndex > oldIndex ? _dropIndex - 1 : _dropIndex;
+        ordered.Insert(Math.Clamp(insertionIndex, 0, ordered.Count), _draggedSection);
+        for (var row = 0; row < ordered.Count; row++)
+            Grid.SetRow(ordered[row], row);
+        _settings.SectionOrder = [.. ordered.Select(section => (string)section.Tag)];
+        Dashboard.UpdateLayout();
+        AnimateReorder(oldPositions);
+        ScheduleSettingsSave();
+        HideDropIndicator();
+    }
+
+    private void Section_DropCompleted(UIElement sender, DropCompletedEventArgs args)
+    {
+        AnimateDragSource((FrameworkElement)sender, dragging: false);
+        _draggedSection = null;
+        HideDropIndicator();
+    }
+
+    private int GetDropIndex(double pointerY)
+    {
+        var index = 0;
+        foreach (var section in Sections.OrderBy(Grid.GetRow))
+        {
+            var top = section.TransformToVisual(Dashboard).TransformPoint(default).Y;
+            if (pointerY >= top + section.ActualHeight / 2) index++;
+        }
+        return index;
+    }
+
+    private void ShowDropIndicator(int index)
+    {
+        var ordered = Sections.OrderBy(Grid.GetRow).ToArray();
+        var atEnd = index >= ordered.Length;
+        Grid.SetRow(DragInsertionIndicator, Grid.GetRow(atEnd ? ordered[^1] : ordered[Math.Max(index, 0)]));
+        DragInsertionIndicator.VerticalAlignment = atEnd ? VerticalAlignment.Bottom : VerticalAlignment.Top;
+        DragInsertionIndicator.Opacity = 1;
+    }
+
+    private void HideDropIndicator() => DragInsertionIndicator.Opacity = 0;
+
+    private static void AnimateDragSource(FrameworkElement section, bool dragging)
+    {
+        var visual = ElementCompositionPreview.GetElementVisual(section);
+        visual.CenterPoint = new Vector3((float)(section.ActualWidth / 2), (float)(section.ActualHeight / 2), 0);
+        var compositor = visual.Compositor;
+        var scale = compositor.CreateVector3KeyFrameAnimation();
+        scale.InsertKeyFrame(1, dragging ? new Vector3(0.975f, 0.975f, 1) : Vector3.One);
+        scale.Duration = TimeSpan.FromMilliseconds(140);
+        visual.StartAnimation("Scale", scale);
+        var opacity = compositor.CreateScalarKeyFrameAnimation();
+        opacity.InsertKeyFrame(1, dragging ? 0.68f : 1);
+        opacity.Duration = TimeSpan.FromMilliseconds(140);
+        visual.StartAnimation("Opacity", opacity);
+    }
+
+    private void AnimateReorder(IReadOnlyDictionary<FrameworkElement, double> oldPositions)
+    {
+        foreach (var section in Sections)
+        {
+            var newTop = section.TransformToVisual(Dashboard).TransformPoint(default).Y;
+            var delta = oldPositions[section] - newTop;
+            if (Math.Abs(delta) < 0.5) continue;
+            var transform = new TranslateTransform { Y = delta };
+            section.RenderTransform = transform;
+            var animation = new DoubleAnimation
+            {
+                To = 0,
+                Duration = new Duration(TimeSpan.FromMilliseconds(240)),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+                EnableDependentAnimation = true
+            };
+            Storyboard.SetTarget(animation, transform);
+            Storyboard.SetTargetProperty(animation, "Y");
+            var storyboard = new Storyboard();
+            storyboard.Children.Add(animation);
+            storyboard.Begin();
+        }
     }
 
     private void SettingsFlyout_Opened(object sender, object e) => UpdateEffectControls();

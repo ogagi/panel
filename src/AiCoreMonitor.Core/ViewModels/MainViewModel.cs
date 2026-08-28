@@ -23,9 +23,9 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     public double CodexUsedPercent => Math.Clamp(_codex?.Value?.UsedPercent ?? 0, 0, 100);
     public string CodexPlan => _codex?.Value is { } value ? $"{value.Plan.ToUpperInvariant()} / {FormatWindow(value.WindowMinutes)}" : "UNAVAILABLE";
     public string CodexReset => _codex?.Value?.ResetsAt is { } reset ? $"RESET {reset:ddd HH:mm}" : "NO RESET DATA";
-    public string CodexWindowUsage => _codex?.Value is { } value ? $"{FormatWindow(value.WindowMinutes)}  {value.UsedPercent:N1}% USED" : "NO WINDOW DATA";
+    public string CodexWindowUsage => _codex?.Value is { } value ? $"{FormatWindow(value.WindowMinutes)}  ·  {value.UsedPercent:N1}%" : "NO WINDOW DATA";
     public string CodexSecondaryUsage => _codex?.Value is { SecondaryWindowMinutes: > 0 } value
-        ? $"{FormatWindow(value.SecondaryWindowMinutes)}  {value.SecondaryUsedPercent:N1}% USED" : "NO WEEKLY DATA";
+        ? $"{FormatWindow(value.SecondaryWindowMinutes)}  ·  {value.SecondaryUsedPercent:N1}%" : "NO WEEKLY DATA";
     public string CodexSecondaryReset => _codex?.Value?.SecondaryResetsAt is { } reset ? $"RESET {reset:ddd HH:mm}" : string.Empty;
     public string CodexTokens => _codex?.Value is { } value ? $"{Compact(value.TotalTokens)} CONTEXT TOKENS" : "NO TOKEN DATA";
 
@@ -38,17 +38,22 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
 
     public string CpuUsage => _cpu?.Value is { } value ? $"{value.UtilizationPercent:N0}%" : "--%";
     public double CpuUsagePercent => Math.Clamp(_cpu?.Value?.UtilizationPercent ?? 0, 0, 100);
-    public string CpuDetails => _cpu?.Value is { } value ? $"{value.LogicalProcessorCount} LOGICAL CORES" : "CPU UNAVAILABLE";
+    public string CpuDetails => _cpu?.Value is { } value ? $"{value.LogicalProcessorCount} THREADS" : "CPU UNAVAILABLE";
+    public string RamUsage => _cpu?.Value is { MemoryTotalBytes: > 0 } value
+        ? $"{100d * value.MemoryUsedBytes / value.MemoryTotalBytes:N0}%" : "--%";
+    public double RamUsagePercent => _cpu?.Value is { MemoryTotalBytes: > 0 } value
+        ? Math.Clamp(100d * value.MemoryUsedBytes / value.MemoryTotalBytes, 0, 100) : 0;
+    public string RamDetails => _cpu?.Value is { MemoryTotalBytes: > 0 } value
+        ? $"{value.MemoryUsedBytes / 1_073_741_824d:N1} / {value.MemoryTotalBytes / 1_073_741_824d:N1} GB" : "-- / -- GB";
 
     public string ModelCount => _ollama?.Value is { } value ? value.InstalledCount.ToString(CultureInfo.InvariantCulture) : "--";
-    public string ModelCountLabel => _ollama?.Value is { InstalledCount: 1 } ? "MODEL INSTALLED" : "MODELS INSTALLED";
     public string OllamaState => _ollama?.Value is { LoadedCount: > 0 } ? "INFERENCE ACTIVE" : _ollama?.IsAvailable == true ? "OLLAMA ONLINE" : "OLLAMA OFFLINE";
     public string ActiveModel => _ollama?.Value?.ActiveModel ?? "No model currently loaded";
     public string ActiveModelShort => ShortModelName(ActiveModel);
-    public string ModelStorage => _ollama?.Value is { } value ? $"{value.TotalBytes / 1_073_741_824d:N1} GB ON DISK   /   {value.LoadedCount} LOADED" : "NO LOCAL DATA";
+    public string ModelStorage => _ollama?.Value is { } value ? $"{value.TotalBytes / 1_073_741_824d:N1} GB  ·  {value.LoadedCount} LOADED" : "NO LOCAL DATA";
 
     public int AvailableProviders => (_codex?.IsAvailable == true ? 1 : 0) + (_gpu?.IsAvailable == true ? 1 : 0) + (_cpu?.IsAvailable == true ? 1 : 0) + (_ollama?.IsAvailable == true ? 1 : 0);
-    public string SystemState => AvailableProviders switch { 4 => "ALL SYSTEMS NOMINAL", > 0 => $"{AvailableProviders}/4 PROVIDERS ONLINE", _ => "PROVIDERS OFFLINE" };
+    public string SystemState => AvailableProviders switch { 4 => "ALL ONLINE", > 0 => $"{AvailableProviders}/4 ONLINE", _ => "OFFLINE" };
     public string StatusColor => AvailableProviders switch { 4 => "#35F2B4", > 0 => "#FFC857", _ => "#FF5A7A" };
     public string ErrorSummary
     {
@@ -97,8 +102,8 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     {
         foreach (var property in new[] { nameof(CodexRemaining), nameof(CodexUsedPercent), nameof(CodexPlan), nameof(CodexReset), nameof(CodexWindowUsage), nameof(CodexSecondaryUsage), nameof(CodexSecondaryReset), nameof(CodexTokens),
                      nameof(GpuName), nameof(GpuUsage), nameof(GpuUsagePercent), nameof(GpuMemory), nameof(GpuThermals),
-                     nameof(CpuUsage), nameof(CpuUsagePercent), nameof(CpuDetails),
-                     nameof(ModelCount), nameof(ModelCountLabel), nameof(OllamaState), nameof(ActiveModel), nameof(ActiveModelShort), nameof(ModelStorage),
+                     nameof(CpuUsage), nameof(CpuUsagePercent), nameof(CpuDetails), nameof(RamUsage), nameof(RamUsagePercent), nameof(RamDetails),
+                     nameof(ModelCount), nameof(OllamaState), nameof(ActiveModel), nameof(ActiveModelShort), nameof(ModelStorage),
                      nameof(AvailableProviders), nameof(SystemState), nameof(StatusColor), nameof(ErrorSummary) })
             OnPropertyChanged(property);
     }

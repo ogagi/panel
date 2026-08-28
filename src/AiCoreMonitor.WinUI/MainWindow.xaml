@@ -96,17 +96,17 @@
           <StackPanel VerticalAlignment="Center"><StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" Margin="0,0,7,0" /><TextBlock x:Name="CompactBrandLabel" Text="AI CORE" Foreground="#DCEAF7" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" /></StackPanel><TextBlock x:Name="TopRefresh" Text="{Binding LastRefreshText}" Foreground="#536E8D" FontSize="8" Margin="0,4,0,0" Visibility="Collapsed" /></StackPanel>
           <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="CODEX" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding CodexRemaining}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopCodexPlan" Text="{Binding CodexPlan}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /><TextBlock x:Name="TopCodexReset" Text="{Binding CodexReset}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
           <StackPanel Grid.Column="2" VerticalAlignment="Center"><TextBlock Text="GPU" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopGpuMemory" Text="{Binding GpuMemory}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /><TextBlock x:Name="TopGpuThermals" Text="{Binding GpuThermals}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
-          <StackPanel Grid.Column="3" VerticalAlignment="Center"><TextBlock Text="CPU" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopCpuDetails" Text="{Binding CpuDetails}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
-          <StackPanel Grid.Column="4" VerticalAlignment="Center"><TextBlock Text="LOCAL MODELS" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding ModelCount}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopModelState" Text="{Binding OllamaState}" Foreground="#49DFB5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /><TextBlock x:Name="TopActiveModel" Text="{Binding ActiveModelShort}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Column="3" VerticalAlignment="Center"><TextBlock Text="SYSTEM" Style="{StaticResource EyebrowStyle}" /><StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="{Binding RamUsage}" Foreground="#AFC6E2" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /></StackPanel><TextBlock x:Name="TopCpuDetails" Text="{Binding RamDetails}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Column="4" VerticalAlignment="Center"><TextBlock Text="MODELS" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding ModelCount}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopModelState" Text="{Binding OllamaState}" Foreground="#49DFB5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /><TextBlock x:Name="TopActiveModel" Text="{Binding ActiveModelShort}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
           <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center"><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A7;" ToolTipService.ToolTip="Switch to side bar" Click="CompactOrientationButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A5;" ToolTipService.ToolTip="Expand dashboard" Click="ExpandButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8BB;" Click="CloseButton_Click" /></StackPanel>
         </Grid>
         <Grid x:Name="CompactSideBar" Margin="12,10" RowSpacing="8" Visibility="Collapsed">
           <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
           <Grid x:Name="CompactSideHeader"><StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" Margin="0,0,7,0" /><TextBlock x:Name="SideBrandLabel" Text="AI CORE" Foreground="#DCEAF7" FontSize="10" FontWeight="Bold" /></StackPanel><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A7;" ToolTipService.ToolTip="Switch to top bar" Click="CompactOrientationButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A5;" ToolTipService.ToolTip="Expand dashboard" Click="ExpandButton_Click" /></StackPanel></Grid>
-          <StackPanel Grid.Row="1"><TextBlock Text="CODEX ALLOCATION" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding CodexRemaining}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideCodexPlan" Text="{Binding CodexPlan}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SideCodexReset" Text="{Binding CodexReset}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
-          <StackPanel Grid.Row="2"><TextBlock Text="GPU COMPUTE" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideGpuMemory" Text="{Binding GpuMemory}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SideGpuThermals" Text="{Binding GpuThermals}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
-          <StackPanel Grid.Row="3"><TextBlock Text="CPU COMPUTE" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideCpuDetails" Text="{Binding CpuDetails}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /></StackPanel>
-          <StackPanel Grid.Row="4"><TextBlock Text="LOCAL MODELS" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding ModelCount}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideModelState" Text="{Binding OllamaState}" Foreground="#49DFB5" FontSize="9" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SideActiveModel" Text="{Binding ActiveModelShort}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Row="1"><TextBlock Text="CODEX" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding CodexRemaining}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideCodexPlan" Text="{Binding CodexPlan}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SideCodexReset" Text="{Binding CodexReset}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Row="2"><TextBlock Text="GPU" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideGpuMemory" Text="{Binding GpuMemory}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SideGpuThermals" Text="{Binding GpuThermals}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
+          <StackPanel Grid.Row="3"><TextBlock Text="SYSTEM" Style="{StaticResource EyebrowStyle}" /><StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock Text="{Binding RamUsage}" Foreground="#AFC6E2" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /></StackPanel><TextBlock x:Name="SideCpuDetails" Text="{Binding RamDetails}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /></StackPanel>
+          <StackPanel Grid.Row="4"><TextBlock Text="MODELS" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding ModelCount}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideModelState" Text="{Binding OllamaState}" Foreground="#49DFB5" FontSize="9" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SideActiveModel" Text="{Binding ActiveModelShort}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
           <TextBlock Grid.Row="5" Text="{Binding LastRefreshText}" Foreground="#536E8D" FontSize="8" HorizontalAlignment="Right" />
         </Grid>
       </Grid>
@@ -155,7 +155,7 @@
             </Grid>
             <StackPanel VerticalAlignment="Center">
               <TextBlock Text="AI / CORE" Foreground="#EDF6FF" FontSize="12" FontWeight="Bold" CharacterSpacing="35" />
-              <TextBlock x:Name="HeaderSubtitle" Text="WORKSTATION INTELLIGENCE" Foreground="#597391" FontSize="8" />
+              <TextBlock x:Name="HeaderSubtitle" Text="LOCAL TELEMETRY" Foreground="#597391" FontSize="8" />
             </StackPanel>
           </StackPanel>
 
@@ -215,7 +215,7 @@
           </StackPanel>
         </Grid>
 
-        <Grid x:Name="Dashboard" Grid.Row="1" Margin="16,2,16,14" RowSpacing="10">
+        <Grid x:Name="Dashboard" Grid.Row="1" Margin="16,2,16,14" RowSpacing="10" AllowDrop="True" DragOver="Dashboard_DragOver" DragLeave="Dashboard_DragLeave" Drop="Dashboard_Drop">
           <Grid.RowDefinitions>
             <RowDefinition Height="1.08*" />
             <RowDefinition Height="1.08*" />
@@ -227,7 +227,7 @@
           <Border Grid.RowSpan="4" Margin="-6,-5,-6,-4" CornerRadius="14" Background="{StaticResource DashboardBedGradient}" BorderBrush="#9A05080D" BorderThickness="1" IsHitTestVisible="False" />
           <Border Grid.RowSpan="4" Margin="-5,-4,-5,-3" CornerRadius="13" BorderBrush="#244F5E6C" BorderThickness="1" IsHitTestVisible="False" />
 
-          <Grid Grid.Row="0">
+          <Grid x:Name="CodexSection" Grid.Row="0" Tag="codex" CanDrag="True" DragStarting="Section_DragStarting" DropCompleted="Section_DropCompleted">
             <Border CornerRadius="16" Background="#D3020509" BorderBrush="#E1030508" BorderThickness="1" />
             <Border Margin="1,2,1,1" CornerRadius="15" Background="#8B000207" BorderBrush="#304B5966" BorderThickness="1" />
           <Border x:Name="CodexCard" Margin="2,3,2,2" Background="{StaticResource CardGradient}" BorderBrush="#5971838F" BorderThickness="1" CornerRadius="14" Padding="17,13">
@@ -235,7 +235,7 @@
               <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <TextBlock Text="CODEX ALLOCATION" Style="{StaticResource EyebrowStyle}" />
+                <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE700;" FontSize="8" Foreground="#647E9D" /><TextBlock Text="CODEX" Style="{StaticResource EyebrowStyle}" /></StackPanel>
                 <Border Grid.Column="1" HorizontalAlignment="Right" CornerRadius="8" Background="#29365975" Padding="8,3" MaxWidth="145">
                   <TextBlock Text="{Binding CodexPlan}" Foreground="#9AAFC9" FontSize="9" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                 </Border>
@@ -244,7 +244,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="96" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock x:Name="CodexValue" Text="{Binding CodexRemaining}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="34" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock x:Name="CodexCaption" Text="ALLOCATION REMAINING" Foreground="#647E9D" FontSize="8" Margin="2,0,0,0" TextTrimming="CharacterEllipsis" />
+                  <TextBlock x:Name="CodexCaption" Text="REMAINING" Foreground="#647E9D" FontSize="8" Margin="2,0,0,0" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                   <TextBlock Text="{Binding CodexWindowUsage}" Foreground="#B8CBE0" FontSize="10" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
@@ -266,7 +266,7 @@
           </Grid>
 
           <!-- Compute telemetry shares one physical row: GPU remains left, CPU is immediately readable at right. -->
-          <Grid Grid.Row="1" ColumnSpacing="8">
+          <Grid x:Name="SystemSection" Grid.Row="1" Tag="system" ColumnSpacing="8" CanDrag="True" DragStarting="Section_DragStarting" DropCompleted="Section_DropCompleted">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
             <Grid>
               <Border CornerRadius="16" Background="#D3020509" BorderBrush="#E1030508" BorderThickness="1" />
@@ -275,7 +275,7 @@
                 <Grid>
                   <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                   <Grid x:Name="GpuSparklineHost" Grid.RowSpan="3" Height="32" VerticalAlignment="Bottom" Margin="0,0,0,7" IsHitTestVisible="False" />
-                  <TextBlock Text="GPU COMPUTE" Style="{StaticResource EyebrowStyle}" />
+                  <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE700;" FontSize="8" Foreground="#647E9D" /><TextBlock Text="GPU" Style="{StaticResource EyebrowStyle}" /></StackPanel>
                   <StackPanel Grid.Row="1" VerticalAlignment="Center">
                     <TextBlock x:Name="GpuValue" Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="29" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding GpuMemory}" Foreground="#B9CEE4" FontSize="10" TextTrimming="CharacterEllipsis" />
@@ -293,13 +293,13 @@
               <Border x:Name="CpuCard" Margin="2,3,2,2" Background="{StaticResource CardGradient}" BorderBrush="#5971838F" BorderThickness="1" CornerRadius="14" Padding="13,12">
                 <Grid>
                   <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                  <TextBlock Text="CPU COMPUTE" Style="{StaticResource EyebrowStyle}" />
-                  <StackPanel Grid.Row="1" VerticalAlignment="Center">
-                    <TextBlock x:Name="CpuValue" Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="29" FontWeight="SemiBold" />
-                    <TextBlock Text="SYSTEM LOAD" Foreground="#647E9D" FontSize="9" />
-                    <TextBlock Text="{Binding CpuDetails}" Foreground="#A7C2DB" FontSize="10" Margin="0,5,0,0" TextTrimming="CharacterEllipsis" />
-                  </StackPanel>
-                  <Grid Grid.Row="2" Height="8"><Border CornerRadius="4" Background="#E004070C" BorderBrush="#6D000000" BorderThickness="1" /><ProgressBar Height="4" Margin="2" Minimum="0" Maximum="100" Value="{Binding CpuUsagePercent}" Foreground="{StaticResource AccentGradient}" /></Grid>
+                  <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE700;" FontSize="8" Foreground="#647E9D" /><TextBlock Text="SYSTEM" Style="{StaticResource EyebrowStyle}" /></StackPanel>
+                  <Grid Grid.Row="1" VerticalAlignment="Center" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <StackPanel><TextBlock Text="CPU" Foreground="#647E9D" FontSize="8" /><TextBlock x:Name="CpuValue" Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="29" FontWeight="SemiBold" /><TextBlock Text="{Binding CpuDetails}" Foreground="#A7C2DB" FontSize="9" TextTrimming="CharacterEllipsis" /></StackPanel>
+                    <StackPanel Grid.Column="1"><TextBlock Text="RAM" Foreground="#647E9D" FontSize="8" /><TextBlock x:Name="RamValue" Text="{Binding RamUsage}" Foreground="#D9E8F7" FontFamily="Bahnschrift SemiCondensed" FontSize="29" FontWeight="SemiBold" /><TextBlock Text="{Binding RamDetails}" Foreground="#A7C2DB" FontSize="9" TextTrimming="CharacterEllipsis" /></StackPanel>
+                  </Grid>
+                  <Grid Grid.Row="2" Height="8" ColumnSpacing="5"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Grid><Border CornerRadius="4" Background="#E004070C" BorderBrush="#6D000000" BorderThickness="1" /><ProgressBar Height="4" Margin="2" Minimum="0" Maximum="100" Value="{Binding CpuUsagePercent}" Foreground="{StaticResource AccentGradient}" /></Grid><Grid Grid.Column="1"><Border CornerRadius="4" Background="#E004070C" BorderBrush="#6D000000" BorderThickness="1" /><ProgressBar Height="4" Margin="2" Minimum="0" Maximum="100" Value="{Binding RamUsagePercent}" Foreground="{StaticResource AccentGradient}" /></Grid></Grid>
                 </Grid>
               </Border>
               <Border Margin="3,4,3,0" Height="1" VerticalAlignment="Top" Background="#38EDF7FF" CornerRadius="1" IsHitTestVisible="False" />
@@ -307,7 +307,7 @@
             </Grid>
           </Grid>
 
-          <Grid Grid.Row="2">
+          <Grid x:Name="ModelsSection" Grid.Row="2" Tag="models" CanDrag="True" DragStarting="Section_DragStarting" DropCompleted="Section_DropCompleted">
             <Border CornerRadius="16" Background="#D3020509" BorderBrush="#E1030508" BorderThickness="1" />
             <Border Margin="1,2,1,1" CornerRadius="15" Background="#8B000207" BorderBrush="#304B5966" BorderThickness="1" />
           <Border x:Name="ModelCard" Margin="2,3,2,2" Background="{StaticResource CardGradient}" BorderBrush="#5971838F" BorderThickness="1" CornerRadius="14" Padding="17,12">
@@ -315,26 +315,29 @@
               <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <TextBlock Text="LOCAL MODEL VAULT" Style="{StaticResource EyebrowStyle}" />
+                <StackPanel Orientation="Horizontal" Spacing="7"><FontIcon Glyph="&#xE700;" FontSize="8" Foreground="#647E9D" /><TextBlock Text="MODELS" Style="{StaticResource EyebrowStyle}" /></StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding OllamaState}" Foreground="#49DFB5" FontSize="9" FontWeight="SemiBold" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
               </Grid>
               <Grid Grid.Row="1" Margin="0,3,0,2">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="70" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock x:Name="ModelValue" Text="{Binding ModelCount}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="29" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock x:Name="ModelCaption" Text="{Binding ModelCountLabel}" Foreground="#647E9D" FontSize="8" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                   <TextBlock Text="{Binding ActiveModelShort}" ToolTipService.ToolTip="{Binding ActiveModel}" Foreground="#D0E0F0" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextAlignment="Right" />
                   <TextBlock Text="{Binding ModelStorage}" Foreground="#647E9D" FontSize="9" Margin="0,5,0,0" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
               </Grid>
-              <Grid Grid.Row="2"><Border Height="1" Background="#3B526475" /><Border Background="#D40B111A" BorderBrush="#323C4C5A" BorderThickness="1" CornerRadius="4" Padding="6,1" HorizontalAlignment="Right"><TextBlock Text="LOCALHOST / PRIVATE" Foreground="#607E9B" FontSize="8" /></Border></Grid>
+              <Grid Grid.Row="2"><Border Height="1" Background="#3B526475" /><Border Background="#D40B111A" BorderBrush="#323C4C5A" BorderThickness="1" CornerRadius="4" Padding="6,1" HorizontalAlignment="Right"><TextBlock Text="LOCAL ONLY" Foreground="#607E9B" FontSize="8" /></Border></Grid>
             </Grid>
           </Border>
             <Border Margin="3,4,3,0" Height="1" VerticalAlignment="Top" Background="#38EDF7FF" CornerRadius="1" IsHitTestVisible="False" />
             <Border Margin="4" CornerRadius="12" IsHitTestVisible="False" Background="{StaticResource GlassReflectionGradient}" Opacity="0.24" />
           </Grid>
+
+          <Border x:Name="DragInsertionIndicator" Grid.ColumnSpan="2" Height="3" Margin="10,-6" VerticalAlignment="Top" CornerRadius="2" Background="{StaticResource AccentGradient}" Opacity="0" IsHitTestVisible="False" Canvas.ZIndex="20">
+            <Border.Shadow><ThemeShadow /></Border.Shadow>
+          </Border>
 
           <Grid Grid.Row="3" Margin="5,0">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -357,10 +360,9 @@
             <Setter Target="CodexValue.FontSize" Value="28" />
             <Setter Target="GpuValue.FontSize" Value="26" />
             <Setter Target="CpuValue.FontSize" Value="26" />
+            <Setter Target="RamValue.FontSize" Value="26" />
             <Setter Target="ModelValue.FontSize" Value="24" />
             <Setter Target="CodexCaption.Visibility" Value="Collapsed" />
-            <Setter Target="GpuCaption.Visibility" Value="Collapsed" />
-            <Setter Target="ModelCaption.Visibility" Value="Collapsed" />
             <Setter Target="HeaderSubtitle.Visibility" Value="Collapsed" />
           </VisualState.Setters>
         </VisualState>
@@ -372,10 +374,9 @@
             <Setter Target="CodexValue.FontSize" Value="34" />
             <Setter Target="GpuValue.FontSize" Value="31" />
             <Setter Target="CpuValue.FontSize" Value="31" />
+            <Setter Target="RamValue.FontSize" Value="31" />
             <Setter Target="ModelValue.FontSize" Value="29" />
             <Setter Target="CodexCaption.Visibility" Value="Visible" />
-            <Setter Target="GpuCaption.Visibility" Value="Visible" />
-            <Setter Target="ModelCaption.Visibility" Value="Visible" />
             <Setter Target="HeaderSubtitle.Visibility" Value="Visible" />
           </VisualState.Setters>
         </VisualState>
