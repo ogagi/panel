@@ -2,7 +2,8 @@ namespace AiCoreMonitor.Core;
 
 public sealed record CodexSnapshot(DateTimeOffset ObservedAt, string Plan, int WindowMinutes,
     double UsedPercent, DateTimeOffset? ResetsAt, long TotalTokens, long LastTokens,
-    long ContextWindow, string Source);
+    long ContextWindow, string Source, double SecondaryUsedPercent = 0,
+    int SecondaryWindowMinutes = 0, DateTimeOffset? SecondaryResetsAt = null);
 
 public sealed record GpuSnapshot(DateTimeOffset ObservedAt, string Name, double UtilizationPercent,
     double MemoryUsedMiB, double MemoryTotalMiB, double TemperatureC, double PowerWatts);

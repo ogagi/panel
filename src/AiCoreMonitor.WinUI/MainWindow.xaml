@@ -219,8 +219,12 @@
                   <TextBlock x:Name="CodexCaption" Text="ALLOCATION REMAINING" Foreground="#647E9D" FontSize="8" Margin="2,0,0,0" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding CodexReset}" Foreground="#B8CBE0" FontSize="10" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="{Binding CodexTokens}" Foreground="#66809E" FontSize="9" Margin="0,6,0,0" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding CodexWindowUsage}" Foreground="#B8CBE0" FontSize="10" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding CodexReset}" Foreground="#66809E" FontSize="9" Margin="0,2,0,0" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
+                  <Grid Margin="0,5,0,0">
+                    <TextBlock Text="{Binding CodexSecondaryUsage}" Foreground="#A7C2DB" FontSize="9" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding CodexSecondaryReset}" Foreground="#66809E" FontSize="9" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+                  </Grid>
                 </StackPanel>
               </Grid>
               <Grid Grid.Row="2" Height="8">

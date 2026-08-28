@@ -26,7 +26,7 @@ public sealed class TelemetryProviderTests
     public async Task CodexProvider_ReadsLatestValidEventFromMalformedJsonl()
     {
         const string json = """
-            {"timestamp":"2026-08-16T12:00:00+00:00","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"total_tokens":12345},"last_token_usage":{"total_tokens":234},"model_context_window":258400},"rate_limits":{"plan_type":"plus","primary":{"window_minutes":300,"used_percent":42.5,"resets_at":1786900000}}}}
+            {"timestamp":"2026-08-16T12:00:00+00:00","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"total_tokens":12345},"last_token_usage":{"total_tokens":234},"model_context_window":258400},"rate_limits":{"plan_type":"plus","primary":{"window_minutes":300,"used_percent":42.5,"resets_at":1786900000},"secondary":{"window_minutes":10080,"used_percent":18.5,"resets_at":1787500000}}}}
             """;
         await File.WriteAllLinesAsync(Path.Combine(_temporaryRoot!, "fixture.jsonl"), ["not json", json]);
 
@@ -36,6 +36,8 @@ public sealed class TelemetryProviderTests
         Assert.AreEqual(42.5, snapshot.UsedPercent);
         Assert.AreEqual("plus", snapshot.Plan);
         Assert.AreEqual(300, snapshot.WindowMinutes);
+        Assert.AreEqual(18.5, snapshot.SecondaryUsedPercent);
+        Assert.AreEqual(10_080, snapshot.SecondaryWindowMinutes);
     }
 
     [TestMethod]

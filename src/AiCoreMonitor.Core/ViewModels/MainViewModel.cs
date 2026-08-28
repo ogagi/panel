@@ -23,6 +23,10 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
     public double CodexUsedPercent => Math.Clamp(_codex?.Value?.UsedPercent ?? 0, 0, 100);
     public string CodexPlan => _codex?.Value is { } value ? $"{value.Plan.ToUpperInvariant()} / {FormatWindow(value.WindowMinutes)}" : "UNAVAILABLE";
     public string CodexReset => _codex?.Value?.ResetsAt is { } reset ? $"RESET {reset:ddd HH:mm}" : "NO RESET DATA";
+    public string CodexWindowUsage => _codex?.Value is { } value ? $"{FormatWindow(value.WindowMinutes)}  {value.UsedPercent:N1}% USED" : "NO WINDOW DATA";
+    public string CodexSecondaryUsage => _codex?.Value is { SecondaryWindowMinutes: > 0 } value
+        ? $"{FormatWindow(value.SecondaryWindowMinutes)}  {value.SecondaryUsedPercent:N1}% USED" : "NO WEEKLY DATA";
+    public string CodexSecondaryReset => _codex?.Value?.SecondaryResetsAt is { } reset ? $"RESET {reset:ddd HH:mm}" : string.Empty;
     public string CodexTokens => _codex?.Value is { } value ? $"{Compact(value.TotalTokens)} CONTEXT TOKENS" : "NO TOKEN DATA";
 
     public string GpuName => _gpu?.Value?.Name.ToUpperInvariant() ?? "NVIDIA GPU UNAVAILABLE";
@@ -91,7 +95,7 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
 
     private void RaiseAll()
     {
-        foreach (var property in new[] { nameof(CodexRemaining), nameof(CodexUsedPercent), nameof(CodexPlan), nameof(CodexReset), nameof(CodexTokens),
+        foreach (var property in new[] { nameof(CodexRemaining), nameof(CodexUsedPercent), nameof(CodexPlan), nameof(CodexReset), nameof(CodexWindowUsage), nameof(CodexSecondaryUsage), nameof(CodexSecondaryReset), nameof(CodexTokens),
                      nameof(GpuName), nameof(GpuUsage), nameof(GpuUsagePercent), nameof(GpuMemory), nameof(GpuThermals),
                      nameof(CpuUsage), nameof(CpuUsagePercent), nameof(CpuDetails),
                      nameof(ModelCount), nameof(ModelCountLabel), nameof(OllamaState), nameof(ActiveModel), nameof(ActiveModelShort), nameof(ModelStorage),
@@ -101,6 +105,7 @@ public sealed class MainViewModel(TelemetryService telemetry) : INotifyPropertyC
 
     private static string FormatWindow(int minutes) => minutes switch
     {
+        10_080 => "WEEKLY",
         >= 1440 when minutes % 1440 == 0 => $"{minutes / 1440}D WINDOW",
         >= 60 when minutes % 60 == 0 => $"{minutes / 60}H WINDOW",
         _ => $"{minutes}M WINDOW"

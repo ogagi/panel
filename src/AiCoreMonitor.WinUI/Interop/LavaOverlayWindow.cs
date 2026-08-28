@@ -16,7 +16,6 @@ internal sealed class LavaOverlayWindow : IDisposable
     private const uint UlwAlpha = 0x00000002;
     private const byte AcSrcAlpha = 0x01;
     private const uint SwpNoActivate = 0x0010;
-    private const uint SwpShowWindow = 0x0040;
     private const int GwlHwndParent = -8;
     private static readonly nint HwndTopmost = new(-1);
     private static readonly nint HwndNotTopmost = new(-2);
@@ -115,7 +114,7 @@ internal sealed class LavaOverlayWindow : IDisposable
             }
             if (_window != 0)
                 _ = SetWindowPos(_window, topmost ? HwndTopmost : HwndNotTopmost,
-                    _x, _y, _width, _height, SwpNoActivate | SwpShowWindow);
+                    _x, _y, _width, _height, SwpNoActivate);
         }
     }
 

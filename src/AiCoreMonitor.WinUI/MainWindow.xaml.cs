@@ -22,6 +22,7 @@ public sealed partial class MainWindow : Window
     private readonly SparklineCompositionController _sparkline;
     private readonly GlassBackdropController _glass;
     private LavaOverlayWindow? _overlay;
+    private AppIcon? _appIcon;
     private TrayIconController? _trayIcon;
     private AppWindow? _appWindow;
     private nint _windowHandle;
@@ -29,6 +30,7 @@ public sealed partial class MainWindow : Window
     private int _tick;
     private bool _closing;
     private bool _correctingSize;
+    private bool _hiddenToTray;
 
     public MainWindow()
     {
@@ -93,8 +95,10 @@ public sealed partial class MainWindow : Window
         SetTitleBar(DragRegion);
         HeaderActions.Margin = new Thickness(0, 0, 2, 0);
         WindowEffects.Apply(_windowHandle);
+        _appIcon = new AppIcon();
+        WindowEffects.SetIcon(_windowHandle, _appIcon.Handle);
         WindowEffects.DisableMaximize(_windowHandle);
-        _trayIcon = new TrayIconController(RestoreFromTray);
+        _trayIcon = new TrayIconController(RestoreFromTray, Close, _appIcon.Handle);
         _appWindow.Closing += AppWindow_Closing;
         _appWindow.Changed += AppWindow_Changed;
         _overlay = new LavaOverlayWindow
@@ -133,9 +137,6 @@ public sealed partial class MainWindow : Window
 
     private void AppWindow_Changed(AppWindow sender, AppWindowChangedEventArgs args)
     {
-        if (args.DidPositionChange)
-            EnableEffects();
-
         if (!_correctingSize)
         {
             var minimumWidth = LogicalToPhysical(340);
@@ -179,7 +180,7 @@ public sealed partial class MainWindow : Window
         var overlayHeight = Math.Max(1, work.Y + work.Height - overlayTop);
         var topmost = _appWindow.Presenter is OverlappedPresenter { IsAlwaysOnTop: true };
         var minimized = _appWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized };
-        _overlay.IsEnabled = _settings.LavaEnabled == true && !minimized;
+        _overlay.IsEnabled = _settings.LavaEnabled == true && !_hiddenToTray && !minimized;
         _overlay.UpdateBounds(_windowHandle, _appWindow.Position.X, overlayTop, _appWindow.Size.Width, overlayHeight,
             _appWindow.Size.Height, topmost);
     }
@@ -260,16 +261,6 @@ public sealed partial class MainWindow : Window
     private void ChangeCrackHue(double delta) { _settings.CrackHue = (_settings.CrackHue!.Value + delta + 360) % 360; _lava.CrackHue = (float)_settings.CrackHue.Value; ScheduleSettingsSave(); }
     private void ChangeVariation(double delta) { _settings.EffectVariation = Math.Clamp(_settings.EffectVariation + delta, 0.25, 2); _lava.Variation = (float)_settings.EffectVariation; if (_overlay is not null) _overlay.Variation = (float)_settings.EffectVariation; ScheduleSettingsSave(); }
 
-    private void EnableEffects()
-    {
-        if (_settings.LavaEnabled == true && _settings.CracksEnabled == true) return;
-        _settings.LavaEnabled = true;
-        _settings.CracksEnabled = true;
-        ApplyEffectSettings();
-        UpdateEffectControls();
-        ScheduleSettingsSave();
-    }
-
     private void ApplyEffectSettings()
     {
         var lavaEnabled = _settings.LavaEnabled == true;
@@ -285,7 +276,7 @@ public sealed partial class MainWindow : Window
             _overlay.Amount = (float)_settings.LavaAmount.Value;
             _overlay.LavaHue = (float)_settings.LavaHue!.Value;
             _overlay.Variation = (float)_settings.EffectVariation;
-            _overlay.IsEnabled = lavaEnabled;
+            SynchronizeOverlay();
         }
         SettingsButton.Opacity = _settings.AnimationEnabled ? 1 : 0.65;
     }
@@ -310,13 +301,15 @@ public sealed partial class MainWindow : Window
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_overlay is not null) _overlay.IsEnabled = false;
+        _hiddenToTray = true;
+        SynchronizeOverlay();
         WindowEffects.Hide(_windowHandle);
     }
 
     private void RestoreFromTray()
     {
         if (_closing) return;
+        _hiddenToTray = false;
         WindowEffects.Show(_windowHandle);
         Activate();
         SynchronizeOverlay();
@@ -335,6 +328,7 @@ public sealed partial class MainWindow : Window
         SaveWindowGeometry();
         _overlay?.Dispose();
         _trayIcon?.Dispose();
+        _appIcon?.Dispose();
         _glass.Dispose();
         _lava.Dispose();
         _sparkline.Dispose();

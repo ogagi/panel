@@ -5,18 +5,23 @@ namespace AiCoreMonitor.WinUI.Interop;
 internal sealed class TrayIconController : IDisposable
 {
     private const uint NimAdd = 0, NimDelete = 2, NifMessage = 1, NifIcon = 2, NifTip = 4;
-    private const int IdiApplication = 32512;
-    private const uint CallbackMessage = 0x8000 + 42, WmLButtonDblClk = 0x0203, WmLButtonUp = 0x0202;
+    private const uint CallbackMessage = 0x8000 + 42, WmLButtonDblClk = 0x0203, WmLButtonUp = 0x0202, WmRButtonUp = 0x0205;
+    private const uint MfString = 0, TpmRightButton = 0x0002;
+    private const uint ShowCommand = 1, ExitCommand = 2;
     private readonly string _className = $"AiCoreMonitor.Tray.{Guid.NewGuid():N}";
     private readonly Action _show;
+    private readonly Action _exit;
+    private readonly nint _icon;
     private readonly WindowProcedure _procedure;
     private readonly nint _module;
     private nint _window;
     private bool _disposed;
 
-    public TrayIconController(Action show)
+    public TrayIconController(Action show, Action exit, nint icon)
     {
         _show = show;
+        _exit = exit;
+        _icon = icon;
         _procedure = WindowProc;
         _module = GetModuleHandle(null);
         var windowClass = new WindowClass
@@ -38,9 +43,31 @@ internal sealed class TrayIconController : IDisposable
 
     private nint WindowProc(nint window, uint message, nint wParam, nint lParam)
     {
-        if (message == CallbackMessage && ((uint)lParam == WmLButtonUp || (uint)lParam == WmLButtonDblClk))
-            _show();
+        if (message == CallbackMessage)
+        {
+            if ((uint)lParam is WmLButtonUp or WmLButtonDblClk)
+                _show();
+            else if ((uint)lParam == WmRButtonUp)
+                ShowContextMenu();
+        }
         return DefWindowProc(window, message, wParam, lParam);
+    }
+
+    private void ShowContextMenu()
+    {
+        var menu = CreatePopupMenu();
+        if (menu == 0) return;
+        try
+        {
+            _ = AppendMenu(menu, MfString, ShowCommand, "Show AI Core Monitor");
+            _ = AppendMenu(menu, MfString, ExitCommand, "Exit");
+            _ = GetCursorPos(out var point);
+            _ = SetForegroundWindow(_window);
+            var command = TrackPopupMenu(menu, TpmRightButton, point.X, point.Y, 0, _window, 0);
+            if (command == ShowCommand) _show();
+            if (command == ExitCommand) _exit();
+        }
+        finally { _ = DestroyMenu(menu); }
     }
 
     private NotifyIconData CreateIconData(bool includeDetails) => new()
@@ -48,7 +75,7 @@ internal sealed class TrayIconController : IDisposable
         Size = (uint)Marshal.SizeOf<NotifyIconData>(), Window = _window, Id = 1,
         Flags = includeDetails ? NifMessage | NifIcon | NifTip : 0,
         CallbackMessage = CallbackMessage,
-        Icon = includeDetails ? LoadIcon(0, (nint)IdiApplication) : 0,
+        Icon = includeDetails ? _icon : 0,
         Tip = includeDetails ? "AI Core Monitor" : string.Empty
     };
 
@@ -91,7 +118,14 @@ internal sealed class TrayIconController : IDisposable
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern nint CreateWindowEx(uint extendedStyle, string className, string name, uint style, int x, int y, int width, int height, nint parent, nint menu, nint instance, nint parameter);
     [DllImport("user32.dll")] private static extern bool DestroyWindow(nint window);
     [DllImport("user32.dll")] private static extern nint DefWindowProc(nint window, uint message, nint wParam, nint lParam);
-    [DllImport("user32.dll")] private static extern nint LoadIcon(nint instance, nint iconName);
+    [DllImport("user32.dll")] private static extern nint CreatePopupMenu();
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenu(nint menu, uint flags, uint id, string text);
+    [DllImport("user32.dll")] private static extern uint TrackPopupMenu(nint menu, uint flags, int x, int y, int reserved, nint window, nint rectangle);
+    [DllImport("user32.dll")] private static extern bool DestroyMenu(nint menu);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(nint window);
+    [DllImport("user32.dll")] private static extern bool GetCursorPos(out NativePoint point);
     [DllImport("shell32.dll", EntryPoint = "Shell_NotifyIconW", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)] private static extern bool ShellNotifyIcon(uint message, ref NotifyIconData data);
+
+    [StructLayout(LayoutKind.Sequential)] private struct NativePoint { public int X; public int Y; }
 }

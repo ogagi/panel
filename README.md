@@ -29,7 +29,7 @@ On first launch, `SignBuild.ps1` creates a non-exportable code-signing certifica
 - Drag the header to reposition the widget.
 - Resize continuously from 340 x 440 through 920 x 1120 logical pixels.
 - Typography and card density adapt at compact widths using real font sizes; the complete window is never bitmap-scaled.
-- Click `FX` for compact Lava and Cracks rows with an independent amount slider for each effect. Moving the widget automatically re-enables both effects.
+- Click `FX` for compact Lava and Cracks rows with an independent amount slider for each effect. Each effect retains its selected state while the widget is moved or minimized.
 - Click `-` to minimize and `x` to exit.
 
 Window position, dimensions, per-effect state, intensity, and topmost state persist in `%LOCALAPPDATA%\AiCoreMonitor\settings.json`.

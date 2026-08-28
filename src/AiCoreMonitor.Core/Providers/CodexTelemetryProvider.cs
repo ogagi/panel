@@ -63,21 +63,21 @@ public sealed class CodexTelemetryProvider(string? sessionRoot = null) : ITeleme
             payload.TryGetProperty("info", out var info);
             payload.TryGetProperty("rate_limits", out var limits);
             var primary = SelectActiveLimit(limits);
-
-            DateTimeOffset? resetAt = null;
-            if (TryGetInt64(primary, "resets_at", out var resetSeconds))
-                resetAt = DateTimeOffset.FromUnixTimeSeconds(resetSeconds).ToLocalTime();
+            var secondary = SelectNamedLimit(limits, "secondary");
 
             snapshot = new CodexSnapshot(
                 observedAt.ToLocalTime(),
                 GetString(limits, "plan_type") ?? "Unknown",
                 GetInt32(primary, "window_minutes"),
                 GetDouble(primary, "used_percent"),
-                resetAt,
+                GetResetAt(primary),
                 GetNestedInt64(info, "total_token_usage", "total_tokens"),
                 GetNestedInt64(info, "last_token_usage", "total_tokens"),
                 GetInt64(info, "model_context_window"),
-                source);
+                source,
+                GetDouble(secondary, "used_percent"),
+                GetInt32(secondary, "window_minutes"),
+                GetResetAt(secondary));
             return true;
         }
         catch (JsonException)
@@ -121,6 +121,17 @@ public sealed class CodexTelemetryProvider(string? sessionRoot = null) : ITeleme
     private static long GetNestedInt64(JsonElement element, string objectName, string valueName) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(objectName, out var nested)
             ? GetInt64(nested, valueName) : 0;
+
+    private static DateTimeOffset? GetResetAt(JsonElement limit)
+    {
+        if (TryGetInt64(limit, "resets_at", out var resetSeconds))
+            return DateTimeOffset.FromUnixTimeSeconds(resetSeconds).ToLocalTime();
+        return null;
+    }
+
+    private static JsonElement SelectNamedLimit(JsonElement limits, string name) =>
+        limits.ValueKind == JsonValueKind.Object && limits.TryGetProperty(name, out var limit) &&
+        limit.ValueKind == JsonValueKind.Object ? limit : default;
 
     // The CLI has used both a named "primary" limit and a list of limits over time.
     // Prefer the shortest active window, matching the 5-hour allowance shown by Codex clients.
