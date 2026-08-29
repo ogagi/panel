@@ -494,7 +494,7 @@ public sealed partial class MainWindow : Window
             var showExtended = width >= 190 && height >= 430;
             SideBrandLabel.Visibility = width >= 175 ? Visibility.Visible : Visibility.Collapsed;
             SideCodexPlan.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
-            SideGpuMemory.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
+            SideGpuMemory.Visibility = Visibility.Visible;
             SideCpuDetails.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
             SideModelState.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
             SideCodexReset.Visibility = showExtended ? Visibility.Visible : Visibility.Collapsed;
@@ -508,7 +508,7 @@ public sealed partial class MainWindow : Window
         CompactTopBar.ColumnSpacing = width < 540 ? 4 : 12;
         CompactBrandLabel.Visibility = width >= 560 ? Visibility.Visible : Visibility.Collapsed;
         TopCodexPlan.Visibility = showTopDetails ? Visibility.Visible : Visibility.Collapsed;
-        TopGpuMemory.Visibility = showTopDetails ? Visibility.Visible : Visibility.Collapsed;
+        TopGpuMemory.Visibility = Visibility.Visible;
         TopCpuDetails.Visibility = showTopDetails ? Visibility.Visible : Visibility.Collapsed;
         TopModelState.Visibility = showTopDetails ? Visibility.Visible : Visibility.Collapsed;
         TopCodexReset.Visibility = showTopExtended ? Visibility.Visible : Visibility.Collapsed;
