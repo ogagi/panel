@@ -28,6 +28,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AiCoreMonitor.Core\AiCoreMonitor.Core.csproj" />
+    <ProjectReference Include="..\VoiceEngine.Client\VoiceEngine.Client.csproj" />
+    <ProjectReference Include="..\VoiceEngine.Client.WindowsAudio\VoiceEngine.Client.WindowsAudio.csproj" />
   </ItemGroup>
 
 </Project>

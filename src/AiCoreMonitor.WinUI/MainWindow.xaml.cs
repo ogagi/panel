@@ -12,13 +12,17 @@ using Microsoft.UI.Xaml.Media.Animation;
 using System.Numerics;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics;
+using Windows.Storage.Pickers;
 using WinRT.Interop;
+using VoiceEngine.Client;
 
 namespace AiCoreMonitor.WinUI;
 
 public sealed partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel = new(new TelemetryService());
+    private readonly ConversationViewModel _conversationViewModel = new();
+    private readonly VoiceServerService _voiceServer = new();
     private readonly WidgetSettingsStore _settingsStore = new();
     private readonly WidgetSettings _settings;
     private readonly CancellationTokenSource _lifetime = new();
@@ -39,6 +43,10 @@ public sealed partial class MainWindow : Window
     private bool _hiddenToTray;
     private FrameworkElement? _draggedSection;
     private int _dropIndex;
+    private VoiceConversationController? _conversationController;
+    private bool _conversationWasCompact;
+    private bool _conversationWasCompactSideBar;
+    private bool _suppressConversationSelection;
 
     public MainWindow()
     {
@@ -46,6 +54,9 @@ public sealed partial class MainWindow : Window
         _settings = _settingsStore.Load();
         ApplySectionOrder();
         Root.DataContext = _viewModel;
+        ConversationPanel.DataContext = _conversationViewModel;
+        VoiceEndpointBox.Text = _settings.VoiceServerBaseUri;
+        VoiceDirectoryBox.Text = _settings.VoiceServerWorkingDirectory;
         _glass = new GlassBackdropController(this);
         var lavaEnabled = _settings.LavaEnabled ?? _settings.AnimationEnabled;
         var cracksEnabled = _settings.CracksEnabled ?? _settings.AnimationEnabled;
@@ -528,6 +539,166 @@ public sealed partial class MainWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
+    private async void ConversationButton_Click(object sender, RoutedEventArgs e) => await StartConversationAsync();
+    private async void RetryVoiceButton_Click(object sender, RoutedEventArgs e) => await StartConversationAsync();
+
+    private async Task StartConversationAsync()
+    {
+        if (_conversationController is not null) return;
+        if (!VoiceServerService.TryGetLoopbackBaseUri(VoiceEndpointBox.Text, out var baseUri))
+        {
+            _conversationViewModel.Failed("Use an HTTP loopback endpoint.");
+            ShowConversationLayout();
+            return;
+        }
+
+        ShowConversationLayout();
+        _conversationViewModel.Starting();
+        var controller = new VoiceConversationController();
+        controller.EventReceived += ConversationEventReceived;
+        _conversationController = controller;
+        try
+        {
+            await controller.StartAsync(baseUri!, _settings.VoiceProfile, _lifetime.Token);
+        }
+        catch (Exception exception) when (exception is VoiceClientException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            controller.EventReceived -= ConversationEventReceived;
+            await controller.DisposeAsync();
+            _conversationController = null;
+            _conversationViewModel.Failed(exception.Message);
+        }
+    }
+
+    private void ShowConversationLayout()
+    {
+        if (ConversationPanel.Visibility == Visibility.Visible) return;
+        _conversationWasCompact = _settings.CompactMode;
+        _conversationWasCompactSideBar = _settings.CompactSideBar;
+        _settings.CompactMode = false;
+        ApplyDisplayMode();
+        Dashboard.Visibility = Visibility.Collapsed;
+        ConversationPanel.Visibility = Visibility.Visible;
+        ConversationButton.Content = "\uE721";
+    }
+
+    private async void EndConversationButton_Click(object sender, RoutedEventArgs e) => await EndConversationAsync();
+
+    private async Task EndConversationAsync()
+    {
+        var controller = _conversationController;
+        _conversationController = null;
+        if (controller is not null)
+        {
+            controller.EventReceived -= ConversationEventReceived;
+            await controller.DisposeAsync();
+        }
+        _conversationViewModel.Stopped();
+        ConversationPanel.Visibility = Visibility.Collapsed;
+        Dashboard.Visibility = Visibility.Visible;
+        _settings.CompactMode = _conversationWasCompact;
+        _settings.CompactSideBar = _conversationWasCompactSideBar;
+        ApplyDisplayMode();
+        ConversationButton.Content = "\uE720";
+        ScheduleSettingsSave();
+    }
+
+    private void ConversationEventReceived(ConversationEvent item)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            _suppressConversationSelection = true;
+            _conversationViewModel.Apply(item);
+            _suppressConversationSelection = false;
+            if (_conversationViewModel.Transcript.Count > 0)
+                TranscriptList.ScrollIntoView(_conversationViewModel.Transcript[^1]);
+        });
+    }
+
+    private async void StopResponseButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_conversationController is null) return;
+        try { await _conversationController.CancelResponseAsync(_lifetime.Token); }
+        catch (VoiceClientException exception) { _conversationViewModel.Failed(exception.Message); }
+    }
+
+    private void MuteVoiceButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_conversationController is null) return;
+        _conversationViewModel.IsMuted = !_conversationViewModel.IsMuted;
+        _conversationController.SetMuted(_conversationViewModel.IsMuted);
+        MuteVoiceButton.Content = _conversationViewModel.IsMuted ? "UNMUTE" : "MUTE";
+    }
+
+    private async void ModelSelection_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressConversationSelection || _conversationController is null || e.AddedItems.FirstOrDefault() is not string model) return;
+        try { await _conversationController.SelectModelAsync(model, _lifetime.Token); }
+        catch (VoiceClientException exception) { _conversationViewModel.Failed(exception.Message); }
+    }
+
+    private async void ContextSelection_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressConversationSelection || _conversationController is null || e.AddedItems.FirstOrDefault() is not string context) return;
+        try { await _conversationController.SelectContextAsync(context, _lifetime.Token); }
+        catch (Exception exception) when (exception is VoiceClientException or FormatException) { _conversationViewModel.Failed(exception.Message); }
+    }
+
+    private async void VoiceSelection_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressConversationSelection || _conversationController is null || e.AddedItems.FirstOrDefault() is not VoiceChoice voice) return;
+        try { await _conversationController.SelectVoiceAsync(voice.Id, _lifetime.Token); }
+        catch (VoiceClientException exception) { _conversationViewModel.Failed(exception.Message); }
+    }
+
+    private async void ProfileSelection_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressConversationSelection || _conversationController is null || e.AddedItems.FirstOrDefault() is not VoiceChoice profile) return;
+        _settings.VoiceProfile = profile.Id;
+        ScheduleSettingsSave();
+        try { await _conversationController.SelectProfileAsync(profile.Id, _lifetime.Token); }
+        catch (VoiceClientException exception) { _conversationViewModel.Failed(exception.Message); }
+    }
+
+    private void VoiceSettings_LostFocus(object sender, RoutedEventArgs e)
+    {
+        _settings.VoiceServerBaseUri = VoiceEndpointBox.Text.Trim();
+        _settings.VoiceServerWorkingDirectory = VoiceDirectoryBox.Text.Trim();
+        ScheduleSettingsSave();
+    }
+
+    private async void BrowseVoiceDirectory_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FolderPicker();
+        picker.FileTypeFilter.Add("*");
+        InitializeWithWindow.Initialize(picker, _windowHandle);
+        var folder = await picker.PickSingleFolderAsync();
+        if (folder is null) return;
+        VoiceDirectoryBox.Text = folder.Path;
+        VoiceSettings_LostFocus(VoiceDirectoryBox, e);
+    }
+
+    private async void StartVoiceServerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!VoiceServerService.TryGetLoopbackBaseUri(VoiceEndpointBox.Text, out var baseUri))
+        {
+            _conversationViewModel.Failed("Use an HTTP loopback endpoint.");
+            return;
+        }
+        VoiceSettings_LostFocus(VoiceDirectoryBox, e);
+        _conversationViewModel.Failed("STARTING VOICE SERVER");
+        try
+        {
+            await _voiceServer.StartAndWaitAsync(_settings.VoiceServerWorkingDirectory, baseUri!, TimeSpan.FromSeconds(45), _lifetime.Token);
+            _conversationViewModel.Stopped();
+            await StartConversationAsync();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or TimeoutException or UnauthorizedAccessException)
+        {
+            _conversationViewModel.Failed(exception.Message);
+        }
+    }
+
     private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args) => _closing = true;
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)
@@ -536,6 +707,8 @@ public sealed partial class MainWindow : Window
         _refreshTimer.Stop();
         _settingsSaveTimer.Stop();
         _lifetime.Cancel();
+        if (_conversationController is not null)
+            _conversationController.DisposeAsync().AsTask().GetAwaiter().GetResult();
         SaveWindowGeometry();
         _overlay?.Dispose();
         _trayIcon?.Dispose();

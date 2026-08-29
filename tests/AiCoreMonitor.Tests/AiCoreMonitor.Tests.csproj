@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AiCoreMonitor.Core\AiCoreMonitor.Core.csproj" />
+    <ProjectReference Include="..\..\src\VoiceEngine.Client\VoiceEngine.Client.csproj" />
   </ItemGroup>
 
 </Project>

@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
     <RootNamespace>AiCoreMonitor</RootNamespace>
     <AssemblyName>AiCoreMonitor.Core</AssemblyName>
-  </PropertyGroup>
+</PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VoiceEngine.Client\VoiceEngine.Client.csproj" />
+  </ItemGroup>
 
 </Project>

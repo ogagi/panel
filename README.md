@@ -7,6 +7,7 @@ AI Core Monitor is a glassy, scalable Windows 11 desktop widget for local AI wor
 - **Codex:** rolling-window allowance, reset time, plan, and current context tokens from `%USERPROFILE%\.codex\sessions`.
 - **NVIDIA GPU:** utilization, VRAM, temperature, power, and a live utilization sparkline through local `nvidia-smi`.
 - **Ollama:** service state, installed and loaded model counts, model storage, and the active model through `http://127.0.0.1:11434`.
+- **Voice Engine:** an expandable local conversation mode using the Local Voice Engine WebSocket v1 protocol.
 
 Providers are isolated and independently timed out. An unavailable GPU or Ollama service does not prevent Codex telemetry from updating.
 
@@ -32,6 +33,12 @@ On first launch, `SignBuild.ps1` creates a non-exportable code-signing certifica
 - Click `FX` for compact Lava and Cracks rows with an independent amount slider for each effect. Each effect retains its selected state while the widget is moved or minimized.
 - Click the compact-display button beside `-` to switch to a live top telemetry bar; use its orientation control to switch it to a side bar, or expand it back into the full dashboard. Drag the compact window edges to progressively reveal or hide detailed telemetry; each orientation remembers its own size.
 - Click `-` to minimize to the tray and `x` to exit.
+- Click the microphone button to open conversation mode. The panel captures audio only after the
+  voice server accepts the session; it supports transcripts, barge-in, stop, mute, and session-scoped
+  model, context, profile, and voice selection. The server endpoint defaults to
+  `http://127.0.0.1:8765` and is restricted to loopback. Configure the Local Voice Engine directory
+  in Settings to enable **Start Server**; this starts `uv run voice-engine --config config.toml` and
+  leaves the server running when the panel closes.
 
 Window position, dimensions, per-effect state, intensity, and topmost state persist in `%LOCALAPPDATA%\AiCoreMonitor\settings.json`.
 
@@ -79,6 +86,9 @@ src
 |-- AiCoreMonitor.WinUI
 |   |-- Presentation     Windows Composition renderers
 |   `-- Interop          DWM and external overlay HWND
+|-- VoiceEngine.Client                 reusable protocol/WebSocket package
+`-- VoiceEngine.Client.WindowsAudio    Windows AudioGraph adapter
+tests
 `-- AiCoreMonitor.Tests
 ```
 

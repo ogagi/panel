@@ -98,11 +98,11 @@
           <StackPanel Grid.Column="2" VerticalAlignment="Center"><StackPanel Orientation="Horizontal" Spacing="8"><StackPanel><TextBlock Text="GPU" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /></StackPanel><StackPanel><TextBlock Text="VRAM" Style="{StaticResource EyebrowStyle}" /><TextBlock x:Name="TopGpuMemory" Text="{Binding GpuMemory}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Visibility="Collapsed" VerticalAlignment="Center" /></StackPanel></StackPanel><TextBlock x:Name="TopGpuThermals" Text="{Binding GpuThermals}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
           <StackPanel Grid.Column="3" VerticalAlignment="Center"><TextBlock Text="CPU / GPU" Style="{StaticResource EyebrowStyle}" /><StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="{Binding RamUsage}" Foreground="#AFC6E2" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /></StackPanel><TextBlock x:Name="TopCpuDetails" Text="{Binding RamDetails}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
           <StackPanel Grid.Column="4" VerticalAlignment="Center"><TextBlock Text="MODELS" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding ModelCount}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopModelState" Text="{Binding OllamaState}" Foreground="#49DFB5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /><TextBlock x:Name="TopActiveModel" Text="{Binding ActiveModelShort}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
-          <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center"><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A7;" ToolTipService.ToolTip="Switch to side bar" Click="CompactOrientationButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A5;" ToolTipService.ToolTip="Expand dashboard" Click="ExpandButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8BB;" Click="CloseButton_Click" /></StackPanel>
+          <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center"><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE720;" ToolTipService.ToolTip="Start voice conversation" Click="ConversationButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A7;" ToolTipService.ToolTip="Switch to side bar" Click="CompactOrientationButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A5;" ToolTipService.ToolTip="Expand dashboard" Click="ExpandButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8BB;" Click="CloseButton_Click" /></StackPanel>
         </Grid>
         <Grid x:Name="CompactSideBar" Margin="12,10" RowSpacing="8" Visibility="Collapsed">
           <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-          <Grid x:Name="CompactSideHeader"><StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" Margin="0,0,7,0" /><TextBlock x:Name="SideBrandLabel" Text="AI CORE" Foreground="#DCEAF7" FontSize="10" FontWeight="Bold" /></StackPanel><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A7;" ToolTipService.ToolTip="Switch to top bar" Click="CompactOrientationButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A5;" ToolTipService.ToolTip="Expand dashboard" Click="ExpandButton_Click" /></StackPanel></Grid>
+          <Grid x:Name="CompactSideHeader"><StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" Margin="0,0,7,0" /><TextBlock x:Name="SideBrandLabel" Text="AI CORE" Foreground="#DCEAF7" FontSize="10" FontWeight="Bold" /></StackPanel><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE720;" ToolTipService.ToolTip="Start voice conversation" Click="ConversationButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A7;" ToolTipService.ToolTip="Switch to top bar" Click="CompactOrientationButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A5;" ToolTipService.ToolTip="Expand dashboard" Click="ExpandButton_Click" /></StackPanel></Grid>
           <StackPanel Grid.Row="1"><TextBlock Text="CODEX" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding CodexRemaining}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock x:Name="SideCodexPlan" Text="{Binding CodexPlan}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SideCodexReset" Text="{Binding CodexReset}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
           <StackPanel Grid.Row="2"><StackPanel Orientation="Horizontal" Spacing="10"><StackPanel><TextBlock Text="GPU" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /></StackPanel><StackPanel><TextBlock Text="VRAM" Style="{StaticResource EyebrowStyle}" /><TextBlock x:Name="SideGpuMemory" Text="{Binding GpuMemory}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" /></StackPanel></StackPanel><TextBlock x:Name="SideGpuThermals" Text="{Binding GpuThermals}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
           <StackPanel Grid.Row="3"><TextBlock Text="CPU / GPU" Style="{StaticResource EyebrowStyle}" /><StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /><TextBlock Text="{Binding RamUsage}" Foreground="#AFC6E2" FontFamily="Bahnschrift SemiCondensed" FontSize="25" FontWeight="SemiBold" /></StackPanel><TextBlock x:Name="SideCpuDetails" Text="{Binding RamDetails}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" /></StackPanel>
@@ -160,6 +160,7 @@
           </StackPanel>
 
           <StackPanel x:Name="HeaderActions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <Button x:Name="ConversationButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE720;" FontSize="14" ToolTipService.ToolTip="Start voice conversation" Click="ConversationButton_Click" />
             <Button x:Name="SettingsButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE713;" FontSize="15">
               <Button.Flyout>
                 <Flyout Placement="BottomEdgeAlignedRight" Opened="SettingsFlyout_Opened">
@@ -173,6 +174,15 @@
                       <Grid Height="28">
                         <TextBlock Text="GPU VISUALS" Style="{StaticResource MenuLabelStyle}" VerticalAlignment="Center" />
                         <Button x:Name="GpuVisualsButton" Width="38" HorizontalAlignment="Right" Style="{StaticResource MenuActionButtonStyle}" Click="GpuVisualsButton_Click" />
+                      </Grid>
+
+                      <Border Height="1" Background="#254B6684" />
+                      <TextBlock Text="VOICE SERVER" Style="{StaticResource MenuSectionStyle}" />
+                      <TextBox x:Name="VoiceEndpointBox" Header="Loopback endpoint" FontSize="10" LostFocus="VoiceSettings_LostFocus" />
+                      <Grid ColumnSpacing="4">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
+                        <TextBox x:Name="VoiceDirectoryBox" Header="Server directory" FontSize="10" LostFocus="VoiceSettings_LostFocus" />
+                        <Button Grid.Column="1" VerticalAlignment="Bottom" Content="…" Style="{StaticResource MenuActionButtonStyle}" Click="BrowseVoiceDirectory_Click" />
                       </Grid>
 
                       <Border Height="1" Background="#254B6684" />
@@ -345,6 +355,54 @@
               <TextBlock Text="{Binding SystemState}" Foreground="#7189A6" FontSize="8" FontWeight="SemiBold" />
             </StackPanel>
             <TextBlock Text="{Binding LastRefreshText}" Foreground="#536E8D" FontSize="8" HorizontalAlignment="Right" VerticalAlignment="Center" />
+          </Grid>
+        </Grid>
+
+        <Grid x:Name="ConversationPanel" Grid.Row="1" Margin="16,2,16,14" Visibility="Collapsed" RowSpacing="9">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <Border CornerRadius="12" Background="#7A071019" BorderBrush="#485F7A94" BorderThickness="1" Padding="12,8">
+            <Grid>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Ellipse Width="8" Height="8" Fill="#FF5A7A" VerticalAlignment="Center" />
+                <TextBlock Text="MICROPHONE ACTIVE" Foreground="#FF8EA5" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBlock Text="{Binding Status}" Foreground="#8DB0CF" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            </Grid>
+          </Border>
+          <Grid Grid.Row="1" ColumnSpacing="6">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+            <StackPanel><TextBlock Text="MODEL" Style="{StaticResource EyebrowStyle}" /><ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel, Mode=TwoWay}" SelectionChanged="ModelSelection_Changed" FontSize="10" HorizontalAlignment="Stretch" MaxDropDownHeight="420" ToolTipService.ToolTip="{Binding SelectedModel}" /></StackPanel>
+            <StackPanel Grid.Column="1"><TextBlock Text="CONTEXT" Style="{StaticResource EyebrowStyle}" /><ComboBox ItemsSource="{Binding ContextChoices}" SelectedItem="{Binding Context, Mode=TwoWay}" SelectionChanged="ContextSelection_Changed" FontSize="10" HorizontalAlignment="Stretch" /></StackPanel>
+          </Grid>
+          <Border Grid.Row="2" CornerRadius="12" Background="#8A05090F" BorderBrush="#364F6478" BorderThickness="1" Padding="10">
+            <ListView x:Name="TranscriptList" ItemsSource="{Binding Transcript}" Background="Transparent" BorderThickness="0" SelectionMode="None">
+              <ListView.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Margin="0,4,0,8">
+                    <TextBlock Text="{Binding Role}" Foreground="#6F8EAB" FontSize="8" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Text}" Foreground="#E0ECF8" FontSize="13" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListView.ItemTemplate>
+            </ListView>
+          </Border>
+          <TextBlock Grid.Row="3" Text="{Binding PartialTranscript}" Foreground="#7998B6" FontSize="11" FontStyle="Italic" TextTrimming="CharacterEllipsis" />
+          <Grid Grid.Row="4" RowSpacing="6">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <Grid ColumnSpacing="6">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+              <StackPanel><TextBlock Text="VOICE" Style="{StaticResource EyebrowStyle}" /><ComboBox ItemsSource="{Binding Voices}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedVoice, Mode=TwoWay}" SelectionChanged="VoiceSelection_Changed" FontSize="10" /></StackPanel>
+              <StackPanel Grid.Column="1"><TextBlock Text="PROFILE" Style="{StaticResource EyebrowStyle}" /><ComboBox ItemsSource="{Binding Profiles}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedProfile, Mode=TwoWay}" SelectionChanged="ProfileSelection_Changed" FontSize="10" /></StackPanel>
+            </Grid>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6">
+              <Button Content="RETRY" Style="{StaticResource MenuActionButtonStyle}" Padding="10,0" Click="RetryVoiceButton_Click" />
+              <Button Content="START SERVER" Style="{StaticResource MenuActionButtonStyle}" Padding="10,0" Click="StartVoiceServerButton_Click" />
+              <Button x:Name="MuteVoiceButton" Content="MUTE" Style="{StaticResource MenuActionButtonStyle}" Padding="10,0" Click="MuteVoiceButton_Click" />
+              <Button Content="STOP" Style="{StaticResource MenuActionButtonStyle}" Padding="10,0" Click="StopResponseButton_Click" />
+              <Button Content="END" Style="{StaticResource MenuActionButtonStyle}" Padding="10,0" Click="EndConversationButton_Click" />
+            </StackPanel>
           </Grid>
         </Grid>
       </Grid>
