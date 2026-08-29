@@ -40,18 +40,18 @@ public sealed partial class MainWindow : Window
     private int _tick;
     private bool _closing;
     private bool _correctingSize;
-    private bool _hiddenToTray;
     private FrameworkElement? _draggedSection;
     private int _dropIndex;
     private VoiceConversationController? _conversationController;
     private bool _conversationWasCompact;
-    private bool _conversationWasCompactSideBar;
     private bool _suppressConversationSelection;
 
     public MainWindow()
     {
         InitializeComponent();
         _settings = _settingsStore.Load();
+        // The compact widget has one fixed top-bar layout. Migrate older side-bar settings.
+        _settings.CompactSideBar = false;
         ApplySectionOrder();
         Root.DataContext = _viewModel;
         ConversationPanel.DataContext = _conversationViewModel;
@@ -111,7 +111,7 @@ public sealed partial class MainWindow : Window
         }
 
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(_settings.CompactMode ? (_settings.CompactSideBar ? CompactSideHeader : CompactTopBar) : DragRegion);
+        SetTitleBar(_settings.CompactMode ? CompactTopBar : DragRegion);
         UpdateCompactDensity(_appWindow.Size);
         HeaderActions.Margin = new Thickness(0, 0, 2, 0);
         WindowEffects.Apply(_windowHandle);
@@ -126,7 +126,8 @@ public sealed partial class MainWindow : Window
             IsEnabled = _settings.LavaEnabled == true,
             Amount = (float)_settings.LavaAmount.GetValueOrDefault(0.78),
             LavaHue = (float)_settings.LavaHue.GetValueOrDefault(275),
-            Variation = (float)_settings.EffectVariation
+            Variation = (float)_settings.EffectVariation,
+            Dripping = _settings.LavaDripping
         };
         SynchronizeOverlay();
 
@@ -159,10 +160,10 @@ public sealed partial class MainWindow : Window
     {
         if (!_correctingSize)
         {
-            var minimumWidth = LogicalToPhysical(_settings.CompactMode ? (_settings.CompactSideBar ? 130 : 400) : 340);
-            var minimumHeight = LogicalToPhysical(_settings.CompactMode ? (_settings.CompactSideBar ? 250 : 56) : 440);
-            var maximumWidth = LogicalToPhysical(_settings.CompactMode ? (_settings.CompactSideBar ? 320 : 1000) : 920);
-            var maximumHeight = LogicalToPhysical(_settings.CompactMode ? (_settings.CompactSideBar ? 900 : 160) : 1120);
+            var minimumWidth = LogicalToPhysical(_settings.CompactMode ? 400 : 340);
+            var minimumHeight = LogicalToPhysical(_settings.CompactMode ? 56 : 440);
+            var maximumWidth = LogicalToPhysical(_settings.CompactMode ? 1000 : 920);
+            var maximumHeight = LogicalToPhysical(_settings.CompactMode ? 160 : 1120);
             var width = Math.Clamp(sender.Size.Width, minimumWidth, maximumWidth);
             var height = Math.Clamp(sender.Size.Height, minimumHeight, maximumHeight);
             if (width != sender.Size.Width || height != sender.Size.Height)
@@ -202,8 +203,7 @@ public sealed partial class MainWindow : Window
         var overlayTop = _appWindow.Position.Y;
         var overlayHeight = Math.Max(1, work.Y + work.Height - overlayTop);
         var topmost = _appWindow.Presenter is OverlappedPresenter { IsAlwaysOnTop: true };
-        var minimized = _appWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized };
-        _overlay.IsEnabled = _settings.LavaEnabled == true && !_hiddenToTray && !minimized;
+        _overlay.IsEnabled = _settings.LavaEnabled == true;
         _overlay.UpdateBounds(_windowHandle, _appWindow.Position.X, overlayTop, _appWindow.Size.Width, overlayHeight,
             _appWindow.Size.Height, topmost);
     }
@@ -352,11 +352,21 @@ public sealed partial class MainWindow : Window
 
     private void SettingsFlyout_Opened(object sender, object e) => UpdateEffectControls();
 
+    private void CompactSettingsButton_Click(object sender, RoutedEventArgs e)
+        => SettingsButton.Flyout?.ShowAt(CompactSettingsButton);
+
     private void LavaButton_Click(object sender, RoutedEventArgs e)
     {
         _settings.LavaEnabled = _settings.LavaEnabled != true;
         ApplyEffectSettings();
         UpdateEffectControls();
+        ScheduleSettingsSave();
+    }
+
+    private void LavaDripping_Changed(object sender, RoutedEventArgs e)
+    {
+        _settings.LavaDripping = LavaDrippingCheckBox.IsChecked == true;
+        if (_overlay is not null) _overlay.Dripping = _settings.LavaDripping;
         ScheduleSettingsSave();
     }
 
@@ -418,6 +428,7 @@ public sealed partial class MainWindow : Window
             _overlay.Amount = (float)_settings.LavaAmount.Value;
             _overlay.LavaHue = (float)_settings.LavaHue!.Value;
             _overlay.Variation = (float)_settings.EffectVariation;
+            _overlay.Dripping = _settings.LavaDripping;
             SynchronizeOverlay();
         }
         SettingsButton.Opacity = _settings.AnimationEnabled ? 1 : 0.65;
@@ -434,6 +445,7 @@ public sealed partial class MainWindow : Window
         TopmostButton.Content = _settings.Topmost ? "ON" : "OFF";
         GpuVisualsButton.Content = _settings.GpuVisualsEnabled ? "ON" : "OFF";
         LavaButton.Content = _settings.LavaEnabled == true ? "ON" : "OFF";
+        LavaDrippingCheckBox.IsChecked = _settings.LavaDripping;
         CracksButton.Content = _settings.CracksEnabled == true ? "ON" : "OFF";
         LavaAmountText.Text = $"{_settings.LavaAmount!.Value * 100:N0}";
         CrackAmountText.Text = $"{_settings.CrackAmount!.Value * 100:N0}";
@@ -451,7 +463,6 @@ public sealed partial class MainWindow : Window
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
-        _hiddenToTray = true;
         SynchronizeOverlay();
         WindowEffects.Hide(_windowHandle);
     }
@@ -461,31 +472,23 @@ public sealed partial class MainWindow : Window
         SaveWindowGeometry();
         _settings.CompactMode = false;
         ApplyDisplayMode();
-        SaveWindowGeometry();
-    }
-
-    private void CompactOrientationButton_Click(object sender, RoutedEventArgs e)
-    {
-        SaveWindowGeometry();
-        _settings.CompactSideBar = !_settings.CompactSideBar;
-        ApplyDisplayMode();
+        if (_conversationController is not null)
+            ShowConversationLayout();
         SaveWindowGeometry();
     }
 
     private SizeInt32 GetDisplaySize() => _settings.CompactMode
         ? new SizeInt32(
-            LogicalToPhysical(_settings.CompactSideBar ? Math.Clamp(_settings.CompactSideWidth, 130, 320) : Math.Clamp(_settings.CompactTopWidth, 400, 1000)),
-            LogicalToPhysical(_settings.CompactSideBar ? Math.Clamp(_settings.CompactSideHeight, 250, 900) : Math.Clamp(_settings.CompactTopHeight, 56, 160)))
+            LogicalToPhysical(Math.Clamp(_settings.CompactTopWidth, 400, 1000)),
+            LogicalToPhysical(Math.Clamp(_settings.CompactTopHeight, 56, 160)))
         : new SizeInt32(LogicalToPhysical(Math.Clamp(_settings.Width, 340, 920)), LogicalToPhysical(Math.Clamp(_settings.Height, 440, 1120)));
 
     private void ApplyDisplayMode(bool resizeWindow = true)
     {
         FullShell.Visibility = _settings.CompactMode ? Visibility.Collapsed : Visibility.Visible;
         CompactShell.Visibility = _settings.CompactMode ? Visibility.Visible : Visibility.Collapsed;
-        CompactTopBar.Visibility = _settings.CompactSideBar ? Visibility.Collapsed : Visibility.Visible;
-        CompactSideBar.Visibility = _settings.CompactSideBar ? Visibility.Visible : Visibility.Collapsed;
         if (_appWindow is not null && ExtendsContentIntoTitleBar)
-            SetTitleBar(_settings.CompactMode ? (_settings.CompactSideBar ? CompactSideHeader : CompactTopBar) : DragRegion);
+            SetTitleBar(_settings.CompactMode ? CompactTopBar : DragRegion);
         if (resizeWindow && _appWindow is not null)
             _appWindow.Resize(GetDisplaySize());
         if (_appWindow is not null)
@@ -499,20 +502,6 @@ public sealed partial class MainWindow : Window
 
         var width = PhysicalToLogical(physicalSize.Width);
         var height = PhysicalToLogical(physicalSize.Height);
-        if (_settings.CompactSideBar)
-        {
-            var showDetails = width >= 150 && height >= 310;
-            var showExtended = width >= 190 && height >= 430;
-            SideBrandLabel.Visibility = width >= 175 ? Visibility.Visible : Visibility.Collapsed;
-            SideCodexPlan.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
-            SideGpuMemory.Visibility = Visibility.Visible;
-            SideCpuDetails.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
-            SideModelState.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
-            SideCodexReset.Visibility = showExtended ? Visibility.Visible : Visibility.Collapsed;
-            SideGpuThermals.Visibility = showExtended ? Visibility.Visible : Visibility.Collapsed;
-            SideActiveModel.Visibility = showExtended ? Visibility.Visible : Visibility.Collapsed;
-            return;
-        }
 
         var showTopDetails = width >= 620 && height >= 78;
         var showTopExtended = width >= 780 && height >= 104;
@@ -531,7 +520,6 @@ public sealed partial class MainWindow : Window
     private void RestoreFromTray()
     {
         if (_closing) return;
-        _hiddenToTray = false;
         WindowEffects.Show(_windowHandle);
         Activate();
         SynchronizeOverlay();
@@ -539,7 +527,13 @@ public sealed partial class MainWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
-    private async void ConversationButton_Click(object sender, RoutedEventArgs e) => await StartConversationAsync();
+    private async void ConversationButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_conversationController is not null)
+            await EndConversationAsync();
+        else
+            await StartConversationAsync();
+    }
     private async void RetryVoiceButton_Click(object sender, RoutedEventArgs e) => await StartConversationAsync();
 
     private async Task StartConversationAsync()
@@ -548,38 +542,55 @@ public sealed partial class MainWindow : Window
         if (!VoiceServerService.TryGetLoopbackBaseUri(VoiceEndpointBox.Text, out var baseUri))
         {
             _conversationViewModel.Failed("Use an HTTP loopback endpoint.");
-            ShowConversationLayout();
+            if (!_settings.CompactMode) ShowConversationLayout();
             return;
         }
 
-        ShowConversationLayout();
+        if (_settings.CompactMode)
+        {
+            _conversationWasCompact = true;
+        }
+        else ShowConversationLayout();
         _conversationViewModel.Starting();
+        UpdateConversationButtons(isRunning: true);
         var controller = new VoiceConversationController();
         controller.EventReceived += ConversationEventReceived;
         _conversationController = controller;
         try
         {
+            // A compact-mode press is self-contained: use an already running server, or
+            // start the configured local server before requesting microphone capture.
+            if (!await _voiceServer.IsReadyAsync(baseUri!, _lifetime.Token) && CanStartVoiceServer())
+                await _voiceServer.StartAndWaitAsync(_settings.VoiceServerWorkingDirectory, baseUri!, TimeSpan.FromSeconds(45), _lifetime.Token);
             await controller.StartAsync(baseUri!, _settings.VoiceProfile, _lifetime.Token);
         }
-        catch (Exception exception) when (exception is VoiceClientException or InvalidOperationException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is VoiceClientException or InvalidOperationException or UnauthorizedAccessException or IOException or TimeoutException)
         {
             controller.EventReceived -= ConversationEventReceived;
             await controller.DisposeAsync();
             _conversationController = null;
             _conversationViewModel.Failed(exception.Message);
+            UpdateConversationButtons(isRunning: false);
         }
     }
+
+    private bool CanStartVoiceServer() =>
+        !string.IsNullOrWhiteSpace(_settings.VoiceServerWorkingDirectory) &&
+        Directory.Exists(_settings.VoiceServerWorkingDirectory) &&
+        File.Exists(Path.Combine(_settings.VoiceServerWorkingDirectory, "config.toml"));
 
     private void ShowConversationLayout()
     {
         if (ConversationPanel.Visibility == Visibility.Visible) return;
-        _conversationWasCompact = _settings.CompactMode;
-        _conversationWasCompactSideBar = _settings.CompactSideBar;
+        if (_conversationController is null)
+        {
+            _conversationWasCompact = _settings.CompactMode;
+        }
         _settings.CompactMode = false;
         ApplyDisplayMode();
         Dashboard.Visibility = Visibility.Collapsed;
         ConversationPanel.Visibility = Visibility.Visible;
-        ConversationButton.Content = "\uE721";
+        ConversationButton.Content = "\uE720";
     }
 
     private async void EndConversationButton_Click(object sender, RoutedEventArgs e) => await EndConversationAsync();
@@ -597,10 +608,22 @@ public sealed partial class MainWindow : Window
         ConversationPanel.Visibility = Visibility.Collapsed;
         Dashboard.Visibility = Visibility.Visible;
         _settings.CompactMode = _conversationWasCompact;
-        _settings.CompactSideBar = _conversationWasCompactSideBar;
         ApplyDisplayMode();
-        ConversationButton.Content = "\uE720";
+        UpdateConversationButtons(isRunning: false);
         ScheduleSettingsSave();
+    }
+
+    private void UpdateConversationButtons(bool isRunning)
+    {
+        var background = new SolidColorBrush(isRunning ? Windows.UI.Color.FromArgb(0xD8, 0x9D, 0x1A, 0x2C) : Windows.UI.Color.FromArgb(0xB6, 0x18, 0x20, 0x2A));
+        var border = new SolidColorBrush(isRunning ? Windows.UI.Color.FromArgb(0xFF, 0xFF, 0x62, 0x7C) : Windows.UI.Color.FromArgb(0x40, 0x5B, 0x6A, 0x78));
+        foreach (var button in new[] { ConversationButton, CompactConversationButton })
+        {
+            button.Background = background;
+            button.BorderBrush = border;
+            button.Content = "\uE720";
+            ToolTipService.SetToolTip(button, isRunning ? "End voice conversation" : "Start voice conversation");
+        }
     }
 
     private void ConversationEventReceived(ConversationEvent item)
@@ -729,11 +752,6 @@ public sealed partial class MainWindow : Window
             {
                 _settings.Width = PhysicalToLogical(_appWindow.Size.Width);
                 _settings.Height = PhysicalToLogical(_appWindow.Size.Height);
-            }
-            else if (_settings.CompactSideBar)
-            {
-                _settings.CompactSideWidth = PhysicalToLogical(_appWindow.Size.Width);
-                _settings.CompactSideHeight = PhysicalToLogical(_appWindow.Size.Height);
             }
             else
             {

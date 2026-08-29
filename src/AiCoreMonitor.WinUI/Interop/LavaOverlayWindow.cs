@@ -21,15 +21,12 @@ internal sealed class LavaOverlayWindow : IDisposable
     private static readonly nint HwndNotTopmost = new(-2);
     private static readonly Drip[] Drips =
     [
-        // These are intentionally broad: a viscous sheet narrows only at its neck,
-        // rather than becoming a set of uniformly thin hanging lines.
         new(0.075f, 0.00f, 0.041f, 12.0f, 0.58f, 1.05f),
         new(0.23f, 0.38f, 0.052f, 9.5f, 0.34f, 0.90f),
         new(0.47f, 0.73f, 0.038f, 15.5f, 0.70f, 1.16f),
         new(0.68f, 0.20f, 0.048f, 10.5f, 0.43f, 0.95f),
         new(0.91f, 0.55f, 0.036f, 13.5f, 0.62f, 1.10f)
     ];
-
     private readonly object _sync = new();
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private readonly WindowProcedure _windowProcedure;
@@ -45,6 +42,7 @@ internal sealed class LavaOverlayWindow : IDisposable
     private float _amount = 0.78f;
     private float _lavaHue = 275f;
     private float _variation = 1f;
+    private bool _dripping = true;
     private bool _disposed;
     private nint _owner;
 
@@ -98,6 +96,12 @@ internal sealed class LavaOverlayWindow : IDisposable
         set => _variation = Math.Clamp(value, 0.25f, 2f);
     }
 
+    public bool Dripping
+    {
+        get => _dripping;
+        set => _dripping = value;
+    }
+
     public void UpdateBounds(nint owner, int x, int y, int width, int height, int panelHeight, bool topmost)
     {
         lock (_sync)
@@ -130,19 +134,21 @@ internal sealed class LavaOverlayWindow : IDisposable
             graphics.CompositingQuality = CompositingQuality.HighQuality;
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
             graphics.Clear(Color.Transparent);
-            DrawLava(graphics, _width, _height, _panelHeight, _clock.Elapsed.TotalSeconds, _amount, _lavaHue, _variation);
+            DrawLava(graphics, _width, _height, _panelHeight, _clock.Elapsed.TotalSeconds, _amount, _lavaHue, _variation, _dripping);
             Present(bitmap);
         }
     }
 
-    private static void DrawLava(Graphics graphics, int width, int height, int panelHeight, double time, float amount, float hue, float variation)
+    private static void DrawLava(Graphics graphics, int width, int height, int panelHeight, double time, float amount, float hue, float variation, bool dripping)
     {
         time *= variation;
-        DrawTopMelt(graphics, width, panelHeight, time, amount, hue, variation);
-        // Side flows are deliberately independent from the bottom drops: they remain visible as a frame effect.
+        DrawTopMelt(graphics, width, panelHeight, time, amount, hue, variation, dripping);
         if (amount >= 0.20f) DrawSideRivulet(graphics, width, panelHeight, time, hue, variation, right: false);
         if (amount >= 0.48f) DrawSideRivulet(graphics, width, panelHeight, time, hue, variation, right: true);
-        DrawSlidingEdgeDrops(graphics, width, panelHeight, time, amount, hue, variation);
+        if (dripping)
+        {
+            DrawSlidingEdgeDrops(graphics, width, panelHeight, time, amount, hue, variation);
+        }
 
         var bottom = graphics.Save();
         graphics.TranslateTransform(0, panelHeight - 8);
@@ -158,19 +164,18 @@ internal sealed class LavaOverlayWindow : IDisposable
         DrawPoolBubbles(graphics, width, time);
         graphics.Restore(bottom);
 
+        if (!dripping) return;
+
         var runway = Math.Max(24, height - panelHeight + 8);
         var dripCount = (int)Math.Ceiling(Drips.Length * amount);
         foreach (var drip in Drips.Take(dripCount))
         {
-            // A full form/stretch/release cycle should be obvious in a few seconds, not tens of seconds.
             var progress = (float)((time * drip.Speed * 4.5 + drip.Phase) % 1);
             var attachedProgress = Math.Min(1, progress / 0.72f);
             var growth = SmoothStep(attachedProgress);
             var fade = progress < 0.72f
                 ? Math.Clamp(growth * 1.5f, 0, 1)
                 : Math.Clamp(1 - (progress - 0.72f) / 0.14f, 0, 1);
-            // A desktop-height filament looks like a rendering defect.  Dense liquid
-            // forms weighty lobes close to its source before it separates into a drop.
             var usableRunway = Math.Min(runway - 18, 340f);
             var maximumLength = Math.Max(42, usableRunway * drip.LengthRatio * (0.42f + 0.58f * amount));
             var length = 14 + growth * maximumLength;
@@ -181,10 +186,8 @@ internal sealed class LavaOverlayWindow : IDisposable
             var strandState = graphics.Save();
             graphics.TranslateTransform(0, panelHeight - 3);
             using var path = CreateViscousDrip(centerX, length, drip.Width * pulse, drip.BulbScale, sway, time + drip.Phase * 11);
-            using var outerGlow = new Pen(LavaColor(hue, 0.76f, 0.9f, (int)(34 * fade)), drip.Width * 1.45f)
-            { LineJoin = LineJoin.Round };
-            using var innerGlow = new Pen(LavaColor(hue - 12, 0.38f, 1f, (int)(54 * fade)), drip.Width * 0.48f)
-            { LineJoin = LineJoin.Round };
+            using var outerGlow = new Pen(LavaColor(hue, 0.76f, 0.9f, (int)(34 * fade)), drip.Width * 1.45f) { LineJoin = LineJoin.Round };
+            using var innerGlow = new Pen(LavaColor(hue - 12, 0.38f, 1f, (int)(54 * fade)), drip.Width * 0.48f) { LineJoin = LineJoin.Round };
             graphics.DrawPath(outerGlow, path);
             graphics.DrawPath(innerGlow, path);
 
@@ -202,7 +205,7 @@ internal sealed class LavaOverlayWindow : IDisposable
         }
     }
 
-    private static void DrawTopMelt(Graphics graphics, int width, int panelHeight, double time, float amount, float hue, float variation)
+    private static void DrawTopMelt(Graphics graphics, int width, int panelHeight, double time, float amount, float hue, float variation, bool dripping)
     {
         using var sheet = new GraphicsPath();
         sheet.StartFigure();
@@ -226,6 +229,8 @@ internal sealed class LavaOverlayWindow : IDisposable
         graphics.FillPath(sheetFill, sheet);
         using var sheetEdge = new Pen(Color.FromArgb(166, 222, 247, 255), 1.05f);
         graphics.DrawPath(sheetEdge, sheet);
+
+        if (!dripping) return;
 
         var strands = new (float X, float Length, float Width, float Phase)[]
         {

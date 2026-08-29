@@ -17,6 +17,7 @@ public sealed class WidgetSettings
     public double Top { get; set; } = double.NaN;
     public bool AnimationEnabled { get; set; } = true;
     public bool? LavaEnabled { get; set; }
+    public bool LavaDripping { get; set; } = true;
     public bool? CracksEnabled { get; set; }
     public double EffectIntensity { get; set; } = 0.40;
     public double? LavaAmount { get; set; } = 0.40;
