@@ -12,7 +12,6 @@ using Microsoft.UI.Xaml.Media.Animation;
 using System.Numerics;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics;
-using Windows.Storage.Pickers;
 using WinRT.Interop;
 using VoiceEngine.Client;
 
@@ -43,6 +42,7 @@ public sealed partial class MainWindow : Window
     private FrameworkElement? _draggedSection;
     private int _dropIndex;
     private VoiceConversationController? _conversationController;
+    private SettingsWindow? _settingsWindow;
     private bool _conversationWasCompact;
     private bool _suppressConversationSelection;
 
@@ -55,8 +55,6 @@ public sealed partial class MainWindow : Window
         ApplySectionOrder();
         Root.DataContext = _viewModel;
         ConversationPanel.DataContext = _conversationViewModel;
-        VoiceEndpointBox.Text = _settings.VoiceServerBaseUri;
-        VoiceDirectoryBox.Text = _settings.VoiceServerWorkingDirectory;
         _glass = new GlassBackdropController(this);
         var lavaEnabled = _settings.LavaEnabled ?? _settings.AnimationEnabled;
         var cracksEnabled = _settings.CracksEnabled ?? _settings.AnimationEnabled;
@@ -350,68 +348,42 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void SettingsFlyout_Opened(object sender, object e) => UpdateEffectControls();
+    private void SettingsButton_Click(object sender, RoutedEventArgs e) => OpenSettingsWindow();
 
-    private void CompactSettingsButton_Click(object sender, RoutedEventArgs e)
-        => SettingsButton.Flyout?.ShowAt(CompactSettingsButton);
+    private void CompactSettingsButton_Click(object sender, RoutedEventArgs e) => OpenSettingsWindow();
 
-    private void LavaButton_Click(object sender, RoutedEventArgs e)
+    private void OpenSettingsWindow()
     {
-        _settings.LavaEnabled = _settings.LavaEnabled != true;
-        ApplyEffectSettings();
-        UpdateEffectControls();
-        ScheduleSettingsSave();
+        if (_settingsWindow is not null)
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+
+        try
+        {
+            var window = new SettingsWindow(_settings, ApplySettingsFromWindow, _windowHandle);
+            _settingsWindow = window;
+            window.Closed += (_, _) => _settingsWindow = null;
+            window.Activate();
+        }
+        catch (Exception exception)
+        {
+            _settingsWindow = null;
+            try { File.WriteAllText(Path.Combine(Path.GetTempPath(), "AiCoreMonitor-settings-error.txt"), exception.ToString()); }
+            catch (IOException) { }
+        }
     }
 
-    private void LavaDripping_Changed(object sender, RoutedEventArgs e)
+    private void ApplySettingsFromWindow()
     {
-        _settings.LavaDripping = LavaDrippingCheckBox.IsChecked == true;
-        if (_overlay is not null) _overlay.Dripping = _settings.LavaDripping;
-        ScheduleSettingsSave();
-    }
-
-    private void CracksButton_Click(object sender, RoutedEventArgs e)
-    {
-        _settings.CracksEnabled = _settings.CracksEnabled != true;
-        ApplyEffectSettings();
-        UpdateEffectControls();
-        ScheduleSettingsSave();
-    }
-
-    private void TopmostButton_Click(object sender, RoutedEventArgs e)
-    {
-        _settings.Topmost = !_settings.Topmost;
         if (_appWindow?.Presenter is OverlappedPresenter presenter)
             presenter.IsAlwaysOnTop = _settings.Topmost;
-        SynchronizeOverlay();
-        UpdateEffectControls();
-        ScheduleSettingsSave();
-    }
-
-    private void GpuVisualsButton_Click(object sender, RoutedEventArgs e)
-    {
-        _settings.GpuVisualsEnabled = !_settings.GpuVisualsEnabled;
+        ApplyEffectSettings();
         ApplyGpuVisualsSetting();
-        UpdateEffectControls();
+        SynchronizeOverlay();
         ScheduleSettingsSave();
     }
-
-    private void LavaAmountDown_Click(object sender, RoutedEventArgs e) => ChangeLavaAmount(-0.1);
-    private void LavaAmountUp_Click(object sender, RoutedEventArgs e) => ChangeLavaAmount(0.1);
-    private void CrackAmountDown_Click(object sender, RoutedEventArgs e) => ChangeCrackAmount(-0.1);
-    private void CrackAmountUp_Click(object sender, RoutedEventArgs e) => ChangeCrackAmount(0.1);
-    private void LavaHueDown_Click(object sender, RoutedEventArgs e) => ChangeLavaHue(-15);
-    private void LavaHueUp_Click(object sender, RoutedEventArgs e) => ChangeLavaHue(15);
-    private void CrackHueDown_Click(object sender, RoutedEventArgs e) => ChangeCrackHue(-15);
-    private void CrackHueUp_Click(object sender, RoutedEventArgs e) => ChangeCrackHue(15);
-    private void VariationDown_Click(object sender, RoutedEventArgs e) => ChangeVariation(-0.25);
-    private void VariationUp_Click(object sender, RoutedEventArgs e) => ChangeVariation(0.25);
-
-    private void ChangeLavaAmount(double delta) { _settings.LavaAmount = Math.Clamp(_settings.LavaAmount!.Value + delta, 0.1, 1); ApplyEffectSettings(); UpdateEffectControls(); ScheduleSettingsSave(); }
-    private void ChangeCrackAmount(double delta) { _settings.CrackAmount = Math.Clamp(_settings.CrackAmount!.Value + delta, 0.1, 1); ApplyEffectSettings(); UpdateEffectControls(); ScheduleSettingsSave(); }
-    private void ChangeLavaHue(double delta) { _settings.LavaHue = (_settings.LavaHue!.Value + delta + 360) % 360; if (_overlay is not null) _overlay.LavaHue = (float)_settings.LavaHue.Value; ScheduleSettingsSave(); }
-    private void ChangeCrackHue(double delta) { _settings.CrackHue = (_settings.CrackHue!.Value + delta + 360) % 360; _lava.CrackHue = (float)_settings.CrackHue.Value; ScheduleSettingsSave(); }
-    private void ChangeVariation(double delta) { _settings.EffectVariation = Math.Clamp(_settings.EffectVariation + delta, 0.25, 2); _lava.Variation = (float)_settings.EffectVariation; if (_overlay is not null) _overlay.Variation = (float)_settings.EffectVariation; ScheduleSettingsSave(); }
 
     private void ApplyEffectSettings()
     {
@@ -431,7 +403,6 @@ public sealed partial class MainWindow : Window
             _overlay.Dripping = _settings.LavaDripping;
             SynchronizeOverlay();
         }
-        SettingsButton.Opacity = _settings.AnimationEnabled ? 1 : 0.65;
     }
 
     private void ApplyGpuVisualsSetting()
@@ -442,14 +413,6 @@ public sealed partial class MainWindow : Window
 
     private void UpdateEffectControls()
     {
-        TopmostButton.Content = _settings.Topmost ? "ON" : "OFF";
-        GpuVisualsButton.Content = _settings.GpuVisualsEnabled ? "ON" : "OFF";
-        LavaButton.Content = _settings.LavaEnabled == true ? "ON" : "OFF";
-        LavaDrippingCheckBox.IsChecked = _settings.LavaDripping;
-        CracksButton.Content = _settings.CracksEnabled == true ? "ON" : "OFF";
-        LavaAmountText.Text = $"{_settings.LavaAmount!.Value * 100:N0}";
-        CrackAmountText.Text = $"{_settings.CrackAmount!.Value * 100:N0}";
-        SettingsButton.Opacity = (_settings.LavaEnabled == true || _settings.CracksEnabled == true) ? 1 : 0.65;
         ApplyGpuVisualsSetting();
     }
 
@@ -539,7 +502,7 @@ public sealed partial class MainWindow : Window
     private async Task StartConversationAsync()
     {
         if (_conversationController is not null) return;
-        if (!VoiceServerService.TryGetLoopbackBaseUri(VoiceEndpointBox.Text, out var baseUri))
+        if (!VoiceServerService.TryGetLoopbackBaseUri(_settings.VoiceServerBaseUri, out var baseUri))
         {
             _conversationViewModel.Failed("Use an HTTP loopback endpoint.");
             if (!_settings.CompactMode) ShowConversationLayout();
@@ -683,32 +646,13 @@ public sealed partial class MainWindow : Window
         catch (VoiceClientException exception) { _conversationViewModel.Failed(exception.Message); }
     }
 
-    private void VoiceSettings_LostFocus(object sender, RoutedEventArgs e)
-    {
-        _settings.VoiceServerBaseUri = VoiceEndpointBox.Text.Trim();
-        _settings.VoiceServerWorkingDirectory = VoiceDirectoryBox.Text.Trim();
-        ScheduleSettingsSave();
-    }
-
-    private async void BrowseVoiceDirectory_Click(object sender, RoutedEventArgs e)
-    {
-        var picker = new FolderPicker();
-        picker.FileTypeFilter.Add("*");
-        InitializeWithWindow.Initialize(picker, _windowHandle);
-        var folder = await picker.PickSingleFolderAsync();
-        if (folder is null) return;
-        VoiceDirectoryBox.Text = folder.Path;
-        VoiceSettings_LostFocus(VoiceDirectoryBox, e);
-    }
-
     private async void StartVoiceServerButton_Click(object sender, RoutedEventArgs e)
     {
-        if (!VoiceServerService.TryGetLoopbackBaseUri(VoiceEndpointBox.Text, out var baseUri))
+        if (!VoiceServerService.TryGetLoopbackBaseUri(_settings.VoiceServerBaseUri, out var baseUri))
         {
             _conversationViewModel.Failed("Use an HTTP loopback endpoint.");
             return;
         }
-        VoiceSettings_LostFocus(VoiceDirectoryBox, e);
         _conversationViewModel.Failed("STARTING VOICE SERVER");
         try
         {
@@ -733,6 +677,7 @@ public sealed partial class MainWindow : Window
         if (_conversationController is not null)
             _conversationController.DisposeAsync().AsTask().GetAwaiter().GetResult();
         SaveWindowGeometry();
+        _settingsWindow?.Close();
         _overlay?.Dispose();
         _trayIcon?.Dispose();
         _appIcon?.Dispose();

@@ -1,0 +1,44 @@
+<Window
+    x:Class="AiCoreMonitor.WinUI.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer Width="460" MaxHeight="680" Background="#FF171324">
+    <StackPanel Padding="24" Spacing="14">
+      <TextBlock Text="SETTINGS" Foreground="#EDF6FF" FontSize="20" FontWeight="SemiBold" />
+      <TextBlock Text="Changes apply immediately to the monitor." Foreground="#91A8BE" FontSize="12" />
+
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <ToggleSwitch x:Name="TopmostSwitch" Header="Keep on top" Toggled="TopmostSwitch_Toggled" />
+        <ToggleSwitch x:Name="GpuVisualsSwitch" Header="GPU visuals" Toggled="GpuVisualsSwitch_Toggled" />
+      </StackPanel>
+
+      <Border Height="1" Background="#254B6684" />
+      <TextBlock Text="VOICE SERVER" Foreground="#7894B5" FontSize="11" FontWeight="SemiBold" />
+      <TextBox x:Name="VoiceEndpointBox" Header="Loopback endpoint" LostFocus="VoiceSettings_LostFocus" />
+      <Grid ColumnSpacing="8">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+        <TextBox x:Name="VoiceDirectoryBox" Header="Server directory" LostFocus="VoiceSettings_LostFocus" />
+        <Button Grid.Column="1" VerticalAlignment="Bottom" Content="Browse…" Click="BrowseVoiceDirectory_Click" />
+      </Grid>
+
+      <Border Height="1" Background="#254B6684" />
+      <TextBlock Text="VISUAL EFFECTS" Foreground="#7894B5" FontSize="11" FontWeight="SemiBold" />
+      <ToggleSwitch x:Name="LavaSwitch" Header="Lava flow" Toggled="LavaSwitch_Toggled" />
+      <ToggleSwitch x:Name="LavaDrippingSwitch" Header="Dripping" Toggled="LavaDrippingSwitch_Toggled" />
+      <TextBlock x:Name="LavaAmountLabel" />
+      <Slider x:Name="LavaAmountSlider" ValueChanged="LavaAmountSlider_ValueChanged" />
+      <ToggleSwitch x:Name="CracksSwitch" Header="Crack field" Toggled="CracksSwitch_Toggled" />
+      <TextBlock x:Name="CrackAmountLabel" />
+      <Slider x:Name="CrackAmountSlider" ValueChanged="CrackAmountSlider_ValueChanged" />
+
+      <Border Height="1" Background="#254B6684" />
+      <TextBlock Text="COLOR &amp; MOTION" Foreground="#7894B5" FontSize="11" FontWeight="SemiBold" />
+      <TextBlock x:Name="LavaHueLabel" />
+      <Slider x:Name="LavaHueSlider" Minimum="0" Maximum="360" StepFrequency="15" ValueChanged="LavaHueSlider_ValueChanged" />
+      <TextBlock x:Name="CrackHueLabel" />
+      <Slider x:Name="CrackHueSlider" Minimum="0" Maximum="360" StepFrequency="15" ValueChanged="CrackHueSlider_ValueChanged" />
+      <TextBlock x:Name="VariationLabel" />
+      <Slider x:Name="VariationSlider" ValueChanged="VariationSlider_ValueChanged" />
+    </StackPanel>
+  </ScrollViewer>
+</Window>

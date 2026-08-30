@@ -152,65 +152,7 @@
 
           <StackPanel x:Name="HeaderActions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
             <Button x:Name="ConversationButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE720;" FontSize="14" ToolTipService.ToolTip="Start voice conversation" Click="ConversationButton_Click" />
-            <Button x:Name="SettingsButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE713;" FontSize="15">
-              <Button.Flyout>
-                <Flyout Placement="BottomEdgeAlignedRight" Opened="SettingsFlyout_Opened">
-                  <Border Width="224" Padding="10,8" CornerRadius="10" Background="#FA171324" BorderBrush="#3D7592B4" BorderThickness="1">
-                    <StackPanel Spacing="4">
-                      <Grid Height="28">
-                        <TextBlock Text="KEEP ON TOP" Style="{StaticResource MenuLabelStyle}" VerticalAlignment="Center" />
-                        <Button x:Name="TopmostButton" Width="38" HorizontalAlignment="Right" Style="{StaticResource MenuActionButtonStyle}" Click="TopmostButton_Click" />
-                      </Grid>
-
-                      <Grid Height="28">
-                        <TextBlock Text="GPU VISUALS" Style="{StaticResource MenuLabelStyle}" VerticalAlignment="Center" />
-                        <Button x:Name="GpuVisualsButton" Width="38" HorizontalAlignment="Right" Style="{StaticResource MenuActionButtonStyle}" Click="GpuVisualsButton_Click" />
-                      </Grid>
-
-                      <Border Height="1" Background="#254B6684" />
-                      <TextBlock Text="VOICE SERVER" Style="{StaticResource MenuSectionStyle}" />
-                      <TextBox x:Name="VoiceEndpointBox" Header="Loopback endpoint" FontSize="10" LostFocus="VoiceSettings_LostFocus" />
-                      <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
-                        <TextBox x:Name="VoiceDirectoryBox" Header="Server directory" FontSize="10" LostFocus="VoiceSettings_LostFocus" />
-                        <Button Grid.Column="1" VerticalAlignment="Bottom" Content="…" Style="{StaticResource MenuActionButtonStyle}" Click="BrowseVoiceDirectory_Click" />
-                      </Grid>
-
-                      <Border Height="1" Background="#254B6684" />
-                      <TextBlock Text="VISUAL EFFECTS" Style="{StaticResource MenuSectionStyle}" />
-
-                      <Grid Height="28">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="22" /><ColumnDefinition Width="26" /><ColumnDefinition Width="22" /><ColumnDefinition Width="38" /></Grid.ColumnDefinitions>
-                        <TextBlock Text="LAVA FLOW" Style="{StaticResource MenuLabelStyle}" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="−" Style="{StaticResource MenuActionButtonStyle}" Click="LavaAmountDown_Click" />
-                        <TextBlock x:Name="LavaAmountText" Grid.Column="2" Style="{StaticResource MenuHintStyle}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        <Button Grid.Column="3" Content="+" Style="{StaticResource MenuActionButtonStyle}" Click="LavaAmountUp_Click" />
-                        <Button x:Name="LavaButton" Grid.Column="4" Style="{StaticResource MenuActionButtonStyle}" Click="LavaButton_Click" />
-                      </Grid>
-                      <CheckBox x:Name="LavaDrippingCheckBox" Content="DRIPPING" Foreground="#D2E0EF" FontSize="10" Checked="LavaDripping_Changed" Unchecked="LavaDripping_Changed" />
-
-                      <Grid Height="28">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="22" /><ColumnDefinition Width="26" /><ColumnDefinition Width="22" /><ColumnDefinition Width="38" /></Grid.ColumnDefinitions>
-                        <TextBlock Text="CRACK FIELD" Style="{StaticResource MenuLabelStyle}" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="−" Style="{StaticResource MenuActionButtonStyle}" Click="CrackAmountDown_Click" />
-                        <TextBlock x:Name="CrackAmountText" Grid.Column="2" Style="{StaticResource MenuHintStyle}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        <Button Grid.Column="3" Content="+" Style="{StaticResource MenuActionButtonStyle}" Click="CrackAmountUp_Click" />
-                        <Button x:Name="CracksButton" Grid.Column="4" Style="{StaticResource MenuActionButtonStyle}" Click="CracksButton_Click" />
-                      </Grid>
-
-                      <Border Height="1" Background="#254B6684" />
-                      <TextBlock Text="COLOR &amp; MOTION" Style="{StaticResource MenuSectionStyle}" />
-                      <Grid Height="28" ColumnSpacing="4">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="22" /><ColumnDefinition Width="22" /></Grid.ColumnDefinitions><TextBlock Text="LAVA HUE" Style="{StaticResource MenuSectionStyle}" VerticalAlignment="Center" /><Button Grid.Column="1" Content="−" Style="{StaticResource MenuActionButtonStyle}" Click="LavaHueDown_Click" /><Button Grid.Column="2" Content="+" Style="{StaticResource MenuActionButtonStyle}" Click="LavaHueUp_Click" /></Grid>
-                        <Grid Grid.Column="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="22" /><ColumnDefinition Width="22" /></Grid.ColumnDefinitions><TextBlock Text="CRACK HUE" Style="{StaticResource MenuSectionStyle}" VerticalAlignment="Center" /><Button Grid.Column="1" Content="−" Style="{StaticResource MenuActionButtonStyle}" Click="CrackHueDown_Click" /><Button Grid.Column="2" Content="+" Style="{StaticResource MenuActionButtonStyle}" Click="CrackHueUp_Click" /></Grid>
-                      </Grid>
-                      <Grid Height="28"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="22" /><ColumnDefinition Width="22" /></Grid.ColumnDefinitions><TextBlock Text="MOVEMENT" Style="{StaticResource MenuSectionStyle}" VerticalAlignment="Center" /><Button Grid.Column="1" Content="−" Style="{StaticResource MenuActionButtonStyle}" Click="VariationDown_Click" /><Button Grid.Column="2" Content="+" Style="{StaticResource MenuActionButtonStyle}" Click="VariationUp_Click" /></Grid>
-                    </StackPanel>
-                  </Border>
-                </Flyout>
-              </Button.Flyout>
-            </Button>
+            <Button x:Name="SettingsButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE713;" FontSize="15" ToolTipService.ToolTip="Open settings" Click="SettingsButton_Click" />
             <Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE7C3;" FontSize="14" ToolTipService.ToolTip="Compact telemetry bar" Click="CompactButton_Click" />
             <Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE921;" FontSize="12" Click="MinimizeButton_Click" />
             <Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8BB;" FontSize="14" Click="CloseButton_Click" />
