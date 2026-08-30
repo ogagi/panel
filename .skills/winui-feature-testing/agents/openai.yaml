@@ -1,0 +1,4 @@
+interface:
+  display_name: "WinUI Feature Testing"
+  short_description: "Operate, verify, and diagnose WinUI desktop apps"
+  default_prompt: "Use $winui-feature-testing to reproduce and verify this WinUI feature end to end."
