@@ -98,7 +98,7 @@
           <StackPanel Grid.Column="2" VerticalAlignment="Center"><StackPanel Orientation="Horizontal" Spacing="8"><StackPanel><TextBlock Text="GPU" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding GpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /></StackPanel><StackPanel><TextBlock Text="VRAM" Style="{StaticResource EyebrowStyle}" /><TextBlock x:Name="TopGpuMemory" Text="{Binding GpuMemory}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Visibility="Collapsed" VerticalAlignment="Center" /></StackPanel></StackPanel><TextBlock x:Name="TopGpuThermals" Text="{Binding GpuThermals}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
           <StackPanel Grid.Column="3" VerticalAlignment="Center"><TextBlock Text="CPU / GPU" Style="{StaticResource EyebrowStyle}" /><StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding CpuUsage}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="{Binding RamUsage}" Foreground="#AFC6E2" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /></StackPanel><TextBlock x:Name="TopCpuDetails" Text="{Binding RamDetails}" Foreground="#7894B5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
           <StackPanel Grid.Column="4" VerticalAlignment="Center"><TextBlock Text="MODELS" Style="{StaticResource EyebrowStyle}" /><TextBlock Text="{Binding ModelCount}" Foreground="#F2F8FF" FontFamily="Bahnschrift SemiCondensed" FontSize="18" FontWeight="SemiBold" /><TextBlock x:Name="TopModelState" Text="{Binding OllamaState}" Foreground="#49DFB5" FontSize="9" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /><TextBlock x:Name="TopActiveModel" Text="{Binding ActiveModelShort}" Foreground="#536E8D" FontSize="8" TextTrimming="CharacterEllipsis" Visibility="Collapsed" /></StackPanel>
-          <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center"><Button x:Name="CompactConversationButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE720;" ToolTipService.ToolTip="Start voice conversation" Click="ConversationButton_Click" /><Button x:Name="CompactSettingsButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE713;" FontSize="15" ToolTipService.ToolTip="Settings" Click="CompactSettingsButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A5;" ToolTipService.ToolTip="Expand dashboard" Click="ExpandButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8BB;" Click="CloseButton_Click" /></StackPanel>
+          <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center"><Button x:Name="CompactConversationButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE720;" ToolTipService.ToolTip="Start voice conversation" Click="ConversationButton_Click" /><Button x:Name="CompactSettingsButton" AutomationProperties.AutomationId="SettingsButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE713;" FontSize="15" ToolTipService.ToolTip="Settings" Click="CompactSettingsButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8A5;" ToolTipService.ToolTip="Expand dashboard" Click="ExpandButton_Click" /><Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8BB;" Click="CloseButton_Click" /></StackPanel>
         </Grid>
       </Grid>
     </Border>
@@ -152,7 +152,7 @@
 
           <StackPanel x:Name="HeaderActions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
             <Button x:Name="ConversationButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE720;" FontSize="14" ToolTipService.ToolTip="Start voice conversation" Click="ConversationButton_Click" />
-            <Button x:Name="SettingsButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE713;" FontSize="15" ToolTipService.ToolTip="Open settings" Click="SettingsButton_Click" />
+            <Button x:Name="SettingsButton" AutomationProperties.AutomationId="SettingsButton" Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE713;" FontSize="15" ToolTipService.ToolTip="Open settings" Click="SettingsButton_Click" />
             <Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE7C3;" FontSize="14" ToolTipService.ToolTip="Compact telemetry bar" Click="CompactButton_Click" />
             <Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE921;" FontSize="12" Click="MinimizeButton_Click" />
             <Button Style="{StaticResource HeaderButtonStyle}" FontFamily="Segoe Fluent Icons" Content="&#xE8BB;" FontSize="14" Click="CloseButton_Click" />
@@ -302,7 +302,10 @@
                 <Ellipse Width="8" Height="8" Fill="#FF5A7A" VerticalAlignment="Center" />
                 <TextBlock Text="MICROPHONE ACTIVE" Foreground="#FF8EA5" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" />
               </StackPanel>
-              <TextBlock Text="{Binding Status}" Foreground="#8DB0CF" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="6">
+                <TextBlock Text="{Binding Status}" Foreground="#8DB0CF" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <Button x:Name="CopyTranscriptButton" AutomationProperties.AutomationId="CopyTranscriptButton" Style="{StaticResource MenuActionButtonStyle}" Width="26" Padding="0" FontFamily="Segoe Fluent Icons" FontSize="12" Content="&#xE8C8;" ToolTipService.ToolTip="Copy conversation" Click="CopyTranscriptButton_Click" />
+              </StackPanel>
             </Grid>
           </Border>
           <Grid Grid.Row="1" ColumnSpacing="6">
@@ -341,6 +344,9 @@
         </Grid>
       </Grid>
     </Border>
+
+    <!-- Lightning is a surface effect: it sits above the glass instead of behind the chassis. -->
+    <Grid x:Name="LightningHost" IsHitTestVisible="False" />
 
     <VisualStateManager.VisualStateGroups>
       <VisualStateGroup>

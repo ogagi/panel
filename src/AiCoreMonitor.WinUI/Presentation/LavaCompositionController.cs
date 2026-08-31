@@ -9,11 +9,14 @@ namespace AiCoreMonitor.WinUI.Presentation;
 internal sealed class LavaCompositionController : IDisposable
 {
     private readonly FrameworkElement _host;
+    private readonly FrameworkElement _lightningHost;
     private readonly Compositor _compositor;
     private readonly ContainerVisual _root;
+    private readonly ContainerVisual _lightningRoot;
     private readonly List<LavaBlob> _blobs = [];
     private readonly List<CrackLayer> _cracks = [];
     private bool _isEnabled = true;
+    private bool _lightningGpuEnabled = true;
     private bool _lavaEnabled = true;
     private bool _cracksEnabled = true;
     private float _lavaAmount = 0.78f;
@@ -21,15 +24,20 @@ internal sealed class LavaCompositionController : IDisposable
     private float _width;
     private float _height;
     private float _crackHue = 220f;
-    private float _variation = 1f;
+    private float _lavaVariation = 1f;
+    private float _crackVariation = 1f;
 
-    public LavaCompositionController(FrameworkElement host)
+    public LavaCompositionController(FrameworkElement host, FrameworkElement lightningHost)
     {
         _host = host;
+        _lightningHost = lightningHost;
         _compositor = ElementCompositionPreview.GetElementVisual(host).Compositor;
         _root = _compositor.CreateContainerVisual();
         _root.RelativeSizeAdjustment = Vector2.One;
         ElementCompositionPreview.SetElementChildVisual(host, _root);
+        _lightningRoot = _compositor.CreateContainerVisual();
+        _lightningRoot.RelativeSizeAdjustment = Vector2.One;
+        ElementCompositionPreview.SetElementChildVisual(lightningHost, _lightningRoot);
 
         AddBlob(Color.FromArgb(66, 48, 196, 255), 0.42f, 0.26f, 0.04f, 0.04f, 13f);
         AddBlob(Color.FromArgb(50, 115, 43, 236), 0.50f, 0.35f, 0.53f, 0.48f, 17f);
@@ -53,6 +61,17 @@ internal sealed class LavaCompositionController : IDisposable
             if (_isEnabled == value) return;
             _isEnabled = value;
             _root.IsVisible = value;
+            _lightningRoot.IsVisible = value && _lightningGpuEnabled;
+        }
+    }
+
+    public bool LightningGpuEnabled
+    {
+        get => _lightningGpuEnabled;
+        set
+        {
+            _lightningGpuEnabled = value;
+            _lightningRoot.IsVisible = _isEnabled && value;
         }
     }
 
@@ -107,13 +126,24 @@ internal sealed class LavaCompositionController : IDisposable
         }
     }
 
-    public float Variation
+    public float LavaVariation
     {
-        get => _variation;
+        get => _lavaVariation;
         set
         {
-            _variation = Math.Clamp(value, 0.25f, 2f);
+            _lavaVariation = Math.Clamp(value, 0.25f, 2f);
             if (_width > 0 && _height > 0) ApplyLayout(_width, _height);
+        }
+    }
+
+    public float CrackVariation
+    {
+        get => _crackVariation;
+        set
+        {
+            _crackVariation = Math.Clamp(value, 0.25f, 2f);
+            if (_width > 0 && _height > 0)
+                foreach (var crack in _cracks) RebuildCrack(crack, _width, _height);
         }
     }
 
@@ -157,13 +187,17 @@ internal sealed class LavaCompositionController : IDisposable
         var pulse = _compositor.CreateScalarKeyFrameAnimation();
         pulse.Duration = TimeSpan.FromSeconds(seconds);
         pulse.IterationBehavior = AnimationIterationBehavior.Forever;
-        pulse.InsertKeyFrame(0, 0.12f);
-        pulse.InsertKeyFrame(0.42f, 0.62f);
-        pulse.InsertKeyFrame(0.50f, 0.22f);
-        pulse.InsertKeyFrame(0.58f, 0.78f);
-        pulse.InsertKeyFrame(1, 0.12f);
+        // Lightning is an intermittent discharge, not a permanently glowing crack.
+        // The short secondary flash is the return stroke seen in real strikes.
+        pulse.InsertKeyFrame(0, 0.03f);
+        pulse.InsertKeyFrame(0.68f, 0.03f);
+        pulse.InsertKeyFrame(0.715f, 0.96f);
+        pulse.InsertKeyFrame(0.742f, 0.18f);
+        pulse.InsertKeyFrame(0.765f, 0.72f);
+        pulse.InsertKeyFrame(0.81f, 0.03f);
+        pulse.InsertKeyFrame(1, 0.03f);
         visual.StartAnimation(nameof(visual.Opacity), pulse);
-        _root.Children.InsertAtTop(visual);
+        _lightningRoot.Children.InsertAtTop(visual);
         _cracks.Add(new CrackLayer(visual, points));
     }
 
@@ -182,20 +216,20 @@ internal sealed class LavaCompositionController : IDisposable
         foreach (var blob in _blobs)
         {
             var visual = blob.Visual;
-            var shapeVariation = 0.72f + _variation * 0.28f;
+            var shapeVariation = 0.72f + _lavaVariation * 0.28f;
             var blobWidth = (float)width * blob.WidthRatio * shapeVariation;
-            var blobHeight = (float)height * blob.HeightRatio * (1.22f - _variation * 0.22f);
+            var blobHeight = (float)height * blob.HeightRatio * (1.22f - _lavaVariation * 0.22f);
             visual.Size = new Vector2(blobWidth, blobHeight);
 
             blob.Geometry.Center = new Vector2(blobWidth / 2, blobHeight / 2);
             blob.Geometry.Radius = new Vector2(blobWidth / 2, blobHeight / 2);
 
-            var phase = (blob.XRatio * 13.7f + blob.YRatio * 7.3f) * (_variation - 1);
+            var phase = (blob.XRatio * 13.7f + blob.YRatio * 7.3f) * (_lavaVariation - 1);
             var start = new Vector3((float)width * blob.XRatio - blobWidth / 2 + MathF.Sin(phase) * width * 0.055f,
                 (float)height * blob.YRatio - blobHeight / 2 + MathF.Cos(phase) * height * 0.045f, 0);
-            var travel = new Vector3((float)width * (0.04f + _variation * 0.07f), (float)height * (0.025f + _variation * 0.055f), 0);
+            var travel = new Vector3((float)width * (0.04f + _lavaVariation * 0.07f), (float)height * (0.025f + _lavaVariation * 0.055f), 0);
             var animation = _compositor.CreateVector3KeyFrameAnimation();
-            animation.Duration = TimeSpan.FromSeconds(blob.Seconds / _variation);
+            animation.Duration = TimeSpan.FromSeconds(blob.Seconds / _lavaVariation);
             animation.IterationBehavior = AnimationIterationBehavior.Forever;
             animation.InsertKeyFrame(0, start);
             animation.InsertKeyFrame(0.5f, start + travel);
@@ -203,7 +237,7 @@ internal sealed class LavaCompositionController : IDisposable
             visual.StartAnimation(nameof(visual.Offset), animation);
 
             var pulse = _compositor.CreateScalarKeyFrameAnimation();
-            pulse.Duration = TimeSpan.FromSeconds(blob.Seconds * 0.43f / _variation);
+            pulse.Duration = TimeSpan.FromSeconds(blob.Seconds * 0.43f / _lavaVariation);
             pulse.IterationBehavior = AnimationIterationBehavior.Forever;
             pulse.InsertKeyFrame(0, 0.48f);
             pulse.InsertKeyFrame(0.5f, 0.86f);
@@ -217,28 +251,52 @@ internal sealed class LavaCompositionController : IDisposable
     private void RebuildCrack(CrackLayer crack, float width, float height)
     {
         while (crack.Visual.Shapes.Count > 0) crack.Visual.Shapes.RemoveAt(0);
-        var glowBrush = _compositor.CreateColorBrush(FromHue(135, 0.72f, 1f));
-        var crustBrush = _compositor.CreateColorBrush(FromHue(230, 0.85f, 0.26f));
-        var coreBrush = _compositor.CreateColorBrush(FromHue(250, 0.30f, 1f));
+        var glowBrush = _compositor.CreateColorBrush(FromHue(88, 0.68f, 1f));
+        var crustBrush = _compositor.CreateColorBrush(FromHue(150, 0.76f, 0.42f));
+        var coreBrush = _compositor.CreateColorBrush(FromHue(225, 0.24f, 1f));
+        var locationVariation = _crackVariation - 1f;
         var segmentCount = Math.Max(1, (int)Math.Ceiling((crack.Points.Length - 1) * (0.3f + 0.7f * _crackAmount)));
         for (var index = 1; index <= segmentCount; index++)
         {
-            var start = new Vector2(crack.Points[index - 1].X * width, crack.Points[index - 1].Y * height);
-            var end = new Vector2(crack.Points[index].X * width, crack.Points[index].Y * height);
-            AddCrackSegment(crack.Visual, start, end, glowBrush, 6.2f);
-            AddCrackSegment(crack.Visual, start, end, crustBrush, 3.1f);
-            AddCrackSegment(crack.Visual, start, end, coreBrush, 1.35f);
+            var start = VariedPoint(crack, index - 1, width, height, locationVariation);
+            var end = VariedPoint(crack, index, width, height, locationVariation);
+            AddCrackSegment(crack.Visual, start, end, glowBrush, 8.5f);
+            AddCrackSegment(crack.Visual, start, end, crustBrush, 2.8f);
+            AddCrackSegment(crack.Visual, start, end, coreBrush, 0.9f);
 
             if (index is 2 or 3)
             {
                 var direction = Vector2.Normalize(end - start);
                 var normal = new Vector2(-direction.Y, direction.X);
-                var branchEnd = end + direction * 12 + normal * (index == 2 ? 15 : -12);
-                AddCrackSegment(crack.Visual, end, branchEnd, glowBrush, 3.2f);
-                AddCrackSegment(crack.Visual, end, branchEnd, crustBrush, 1.7f);
-                AddCrackSegment(crack.Visual, end, branchEnd, coreBrush, 0.8f);
+                var branchScale = 1f + locationVariation * 0.35f;
+                var branchStart = Vector2.Lerp(start, end, 0.58f);
+                var branchEnd = branchStart + direction * (18 * branchScale) +
+                    normal * ((index == 2 ? 19 : -16) * branchScale);
+                AddCrackSegment(crack.Visual, branchStart, branchEnd, glowBrush, 4.8f);
+                AddCrackSegment(crack.Visual, branchStart, branchEnd, crustBrush, 1.65f);
+                AddCrackSegment(crack.Visual, branchStart, branchEnd, coreBrush, 0.65f);
+
+                if (index == 3)
+                {
+                    var forkEnd = branchEnd + direction * (9 * branchScale) - normal * (8 * branchScale);
+                    AddCrackSegment(crack.Visual, branchEnd, forkEnd, glowBrush, 2.6f);
+                    AddCrackSegment(crack.Visual, branchEnd, forkEnd, crustBrush, 0.95f);
+                    AddCrackSegment(crack.Visual, branchEnd, forkEnd, coreBrush, 0.42f);
+                }
             }
         }
+    }
+
+    private static Vector2 VariedPoint(CrackLayer crack, int pointIndex, float width, float height, float variation)
+    {
+        var point = crack.Points[pointIndex];
+        if (pointIndex == 0 || MathF.Abs(variation) < 0.001f)
+            return new Vector2(point.X * width, point.Y * height);
+
+        var phase = crack.Points[0].X * 41f + pointIndex * 2.17f;
+        var x = point.X + MathF.Sin(phase) * variation * 0.025f;
+        var y = point.Y + MathF.Cos(phase * 0.73f) * variation * 0.012f;
+        return new Vector2(Math.Clamp(x, 0f, 1f) * width, Math.Clamp(y, 0f, 1f) * height);
     }
 
     private void AddCrackSegment(ShapeVisual visual, Vector2 start, Vector2 end, CompositionBrush brush, float thickness)
@@ -249,6 +307,9 @@ internal sealed class LavaCompositionController : IDisposable
         var shape = _compositor.CreateSpriteShape(geometry);
         shape.StrokeBrush = brush;
         shape.StrokeThickness = thickness;
+        shape.StrokeLineJoin = CompositionStrokeLineJoin.Round;
+        shape.StrokeStartCap = CompositionStrokeCap.Round;
+        shape.StrokeEndCap = CompositionStrokeCap.Round;
         visual.Shapes.Add(shape);
     }
 
@@ -270,7 +331,9 @@ internal sealed class LavaCompositionController : IDisposable
     {
         _host.SizeChanged -= Host_SizeChanged;
         ElementCompositionPreview.SetElementChildVisual(_host, null);
+        ElementCompositionPreview.SetElementChildVisual(_lightningHost, null);
         _root.Dispose();
+        _lightningRoot.Dispose();
     }
 
     private sealed record LavaBlob(ShapeVisual Visual, CompositionEllipseGeometry Geometry,

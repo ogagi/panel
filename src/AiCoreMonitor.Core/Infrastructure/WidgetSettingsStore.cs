@@ -31,6 +31,8 @@ public sealed class WidgetSettings
     public double? LavaHue { get; set; } = 235;
     public double? CrackHue { get; set; } = 215;
     public double EffectVariation { get; set; } = 0.82;
+    public double? LavaVariation { get; set; }
+    public double? CrackVariation { get; set; }
     public string VoiceServerBaseUri { get; set; } = "http://127.0.0.1:8765";
     public string VoiceProfile { get; set; } = "natural";
     public string VoiceServerWorkingDirectory { get; set; } = "";

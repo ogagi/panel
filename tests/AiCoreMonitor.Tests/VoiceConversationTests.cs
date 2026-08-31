@@ -38,5 +38,6 @@ public sealed class VoiceConversationTests
         Assert.AreEqual("YOU", viewModel.Transcript[0].Role);
         Assert.AreEqual("ASSISTANT", viewModel.Transcript[1].Role);
         Assert.AreEqual("hello back", viewModel.Transcript[1].Text);
+        Assert.AreEqual($"YOU: hello{Environment.NewLine}{Environment.NewLine}ASSISTANT: hello back", viewModel.GetTranscriptText());
     }
 }

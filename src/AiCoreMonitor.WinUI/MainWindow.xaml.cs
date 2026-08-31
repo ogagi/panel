@@ -64,15 +64,19 @@ public sealed partial class MainWindow : Window
         _settings.CrackAmount = Math.Clamp(_settings.CrackAmount ?? _settings.EffectIntensity, 0.1, 1);
         _settings.LavaHue ??= 275;
         _settings.CrackHue ??= Math.Clamp(_settings.EffectHue, 0, 360);
-        _lava = new LavaCompositionController(LavaHost)
+        _settings.LavaVariation = Math.Clamp(_settings.LavaVariation ?? _settings.EffectVariation, 0.25, 2);
+        _settings.CrackVariation = Math.Clamp(_settings.CrackVariation ?? _settings.EffectVariation, 0.25, 2);
+        _lava = new LavaCompositionController(LavaHost, LightningHost)
         {
-            IsEnabled = lavaEnabled || cracksEnabled,
+            IsEnabled = _settings.GpuVisualsEnabled && (lavaEnabled || cracksEnabled),
+            LightningGpuEnabled = _settings.GpuVisualsEnabled,
             LavaEnabled = lavaEnabled,
             CracksEnabled = cracksEnabled,
             LavaAmount = (float)_settings.LavaAmount.Value,
             CrackAmount = (float)_settings.CrackAmount.Value,
             CrackHue = (float)_settings.CrackHue.Value,
-            Variation = (float)Math.Clamp(_settings.EffectVariation, 0.25, 2)
+            LavaVariation = (float)_settings.LavaVariation.Value,
+            CrackVariation = (float)_settings.CrackVariation.Value
         };
         _sparkline = new SparklineCompositionController(GpuSparklineHost);
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
@@ -121,10 +125,10 @@ public sealed partial class MainWindow : Window
         _appWindow.Changed += AppWindow_Changed;
         _overlay = new LavaOverlayWindow
         {
-            IsEnabled = _settings.LavaEnabled == true,
+            IsEnabled = _settings.GpuVisualsEnabled && _settings.LavaEnabled == true,
             Amount = (float)_settings.LavaAmount.GetValueOrDefault(0.78),
             LavaHue = (float)_settings.LavaHue.GetValueOrDefault(275),
-            Variation = (float)_settings.EffectVariation,
+            Variation = (float)_settings.LavaVariation.GetValueOrDefault(0.82),
             Dripping = _settings.LavaDripping
         };
         SynchronizeOverlay();
@@ -201,7 +205,7 @@ public sealed partial class MainWindow : Window
         var overlayTop = _appWindow.Position.Y;
         var overlayHeight = Math.Max(1, work.Y + work.Height - overlayTop);
         var topmost = _appWindow.Presenter is OverlappedPresenter { IsAlwaysOnTop: true };
-        _overlay.IsEnabled = _settings.LavaEnabled == true;
+        _overlay.IsEnabled = _settings.GpuVisualsEnabled && _settings.LavaEnabled == true;
         _overlay.UpdateBounds(_windowHandle, _appWindow.Position.X, overlayTop, _appWindow.Size.Width, overlayHeight,
             _appWindow.Size.Height, topmost);
     }
@@ -390,16 +394,20 @@ public sealed partial class MainWindow : Window
         var lavaEnabled = _settings.LavaEnabled == true;
         var cracksEnabled = _settings.CracksEnabled == true;
         _settings.AnimationEnabled = lavaEnabled || cracksEnabled;
-        _lava.IsEnabled = _settings.AnimationEnabled && _settings.GpuVisualsEnabled;
-        _lava.LavaEnabled = lavaEnabled;
-        _lava.CracksEnabled = cracksEnabled;
+        var gpuEnhancementsEnabled = _settings.GpuVisualsEnabled;
+        _lava.IsEnabled = gpuEnhancementsEnabled && _settings.AnimationEnabled;
+        _lava.LavaEnabled = gpuEnhancementsEnabled && lavaEnabled;
+        _lava.CracksEnabled = gpuEnhancementsEnabled && cracksEnabled;
         _lava.LavaAmount = (float)_settings.LavaAmount!.Value;
         _lava.CrackAmount = (float)_settings.CrackAmount!.Value;
+        _lava.CrackHue = (float)_settings.CrackHue!.Value;
+        _lava.LavaVariation = (float)_settings.LavaVariation!.Value;
+        _lava.CrackVariation = (float)_settings.CrackVariation!.Value;
         if (_overlay is not null)
         {
             _overlay.Amount = (float)_settings.LavaAmount.Value;
             _overlay.LavaHue = (float)_settings.LavaHue!.Value;
-            _overlay.Variation = (float)_settings.EffectVariation;
+            _overlay.Variation = (float)_settings.LavaVariation.Value;
             _overlay.Dripping = _settings.LavaDripping;
             SynchronizeOverlay();
         }
@@ -407,7 +415,8 @@ public sealed partial class MainWindow : Window
 
     private void ApplyGpuVisualsSetting()
     {
-        _lava.IsEnabled = _settings.AnimationEnabled && _settings.GpuVisualsEnabled;
+        _lava.IsEnabled = _settings.GpuVisualsEnabled && _settings.AnimationEnabled;
+        _lava.LightningGpuEnabled = _settings.GpuVisualsEnabled;
         _sparkline.IsEnabled = _settings.GpuVisualsEnabled;
     }
 
@@ -498,6 +507,16 @@ public sealed partial class MainWindow : Window
             await StartConversationAsync();
     }
     private async void RetryVoiceButton_Click(object sender, RoutedEventArgs e) => await StartConversationAsync();
+
+    private void CopyTranscriptButton_Click(object sender, RoutedEventArgs e)
+    {
+        var transcript = _conversationViewModel.GetTranscriptText();
+        if (string.IsNullOrEmpty(transcript)) return;
+
+        var dataPackage = new DataPackage();
+        dataPackage.SetText(transcript);
+        Clipboard.SetContent(dataPackage);
+    }
 
     private async Task StartConversationAsync()
     {

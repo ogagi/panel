@@ -66,6 +66,12 @@ public sealed class ConversationViewModel : INotifyPropertyChanged
         Status = $"ERROR · {message}";
     }
 
+    public string GetTranscriptText() => string.Join(
+        Environment.NewLine + Environment.NewLine,
+        Transcript
+            .Where(line => !string.IsNullOrWhiteSpace(line.Text))
+            .Select(line => $"{line.Role}: {line.Text.Trim()}"));
+
     public void Apply(ConversationEvent item)
     {
         switch (item)
